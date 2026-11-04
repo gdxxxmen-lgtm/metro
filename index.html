@@ -4,889 +4,720 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>資訊物品點交系統</title>
-    <!-- 加入這行：拒絕所有搜尋引擎建立索引與追蹤 -->
+    <!-- 拒絕搜尋引擎收錄 -->
     <meta name="robots" content="noindex, nofollow">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- 加入 SheetJS 函式庫以處理真實的 Excel 檔案 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- 引入 SheetJS 處理 Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <!-- 引入相機掃描套件 -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-        /* 隱藏捲軸但可捲動 */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; margin: 0; }
+        /* 鎖定畫面樣式 */
+        #lockScreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 9999; color: white;
+        }
+        .app-content { display: none; }
+        
+        #signatureCanvas { border: 2px dashed #cbd5e1; border-radius: 8px; width: 100%; height: 200px; touch-action: none; background: #fff; }
+        .remark-tag { display: inline-flex; align-items: center; background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 999px; font-size: 13px; margin: 2px; cursor: pointer; transition: 0.2s; }
+        .remark-tag:hover { background: #fee2e2; color: #ef4444; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 50; }
+        
+        /* 備註選項樣式 */
+        .remark-option { border: 2px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .remark-option.selected { border-color: #3b82f6; background-color: #eff6ff; }
+        .number-input { width: 60px; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center; }
+        
+        #scanner-container { width: 100%; max-width: 400px; margin: 0 auto; }
     </style>
 </head>
-<body class="text-gray-800 h-screen flex flex-col overflow-hidden relative">
+<body>
 
-    <!-- 登入鎖定畫面 (App Lock) -->
-    <div id="appLockOverlay" class="fixed inset-0 bg-slate-900 z-[100] flex flex-col items-center justify-center p-6 transition-opacity duration-300">
-        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center">
-            <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-            </div>
-            <h2 class="text-xl font-bold text-gray-800 mb-2">系統已鎖定</h2>
-            <p class="text-sm text-gray-500 mb-6">請輸入存取密碼以使用報廢點交系統</p>
-            
-            <input type="password" id="appLockPassword" class="w-full border border-gray-300 rounded-lg p-3 text-center tracking-widest text-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all mb-4" placeholder="••••" autocomplete="off">
-            
-            <p id="appLockError" class="text-red-500 text-xs font-medium mb-4 hidden">密碼錯誤，請重新輸入</p>
-            
-            <button id="appLockBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors shadow-md">
-                解鎖進入
-            </button>
-        </div>
+    <!-- 前端密碼鎖畫面 -->
+    <div id="lockScreen">
+        <i data-lucide="lock" class="w-16 h-16 mb-4 text-blue-400"></i>
+        <h1 class="text-2xl font-bold mb-6">資訊物品點交系統</h1>
+        <input type="password" id="passwordInput" placeholder="請輸入進入密碼" class="px-4 py-3 rounded-lg text-gray-800 w-64 mb-4 text-center text-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <button onclick="checkPassword()" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg font-bold transition">解鎖進入</button>
+        <p id="passwordError" class="text-red-400 mt-4 hidden">密碼錯誤，請重新輸入</p>
     </div>
 
-    <!-- 頂部導覽列 -->
-    <header class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center shrink-0">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-800">資訊物品點交系統</h1>
-        </div>
-        <!-- 匯入匯出選單 (收納至齒輪) -->
-        <div class="relative group">
-            <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-            </button>
-            <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 hidden group-hover:block z-50">
-                <div class="py-1">
-                    <!-- 隱藏的檔案輸入框供上傳 Excel -->
-                    <input type="file" id="excelInput" accept=".xlsx, .xls" class="hidden">
-                    <button id="importExcelBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                        匯入 Excel
+    <!-- 系統主體 (預設隱藏) -->
+    <div id="mainApp" class="app-content min-h-screen">
+        <!-- 頂部導覽列 -->
+        <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+            <div>
+                <h1 class="text-xl font-bold text-gray-800 tracking-wide">資訊物品點交系統</h1>
+                <p class="text-xs text-gray-500 mt-1">感應卡片、核對清單，讓每一筆點交都有紀錄。</p>
+            </div>
+            <div class="relative">
+                <button onclick="toggleMenu()" class="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition">
+                    <i data-lucide="settings" class="w-5 h-5 text-gray-600"></i>
+                </button>
+                <!-- 齒輪選單 -->
+                <div id="settingsMenu" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-lg py-2">
+                    <label class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center">
+                        <i data-lucide="upload" class="w-4 h-4 mr-2"></i>匯入真實 Excel
+                        <input type="file" id="excelUpload" accept=".xlsx, .xls" class="hidden" onchange="importExcel(event)">
+                    </label>
+                    <button onclick="exportExcel()" class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center">
+                        <i data-lucide="download" class="w-4 h-4 mr-2"></i>匯出完成清單
                     </button>
-                    <button id="exportExcelBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        匯出完整 Excel
-                    </button>
-                    <div class="border-t border-gray-100 my-1"></div>
-                    <button id="viewHistoryBtn" class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50 flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        報廢紀錄查詢
+                    <button onclick="showRecordModal()" class="w-full text-left px-4 py-3 text-sm text-green-700 hover:bg-green-50 flex items-center border-t mt-1">
+                        <i data-lucide="clipboard-list" class="w-4 h-4 mr-2"></i>查詢報廢紀錄
                     </button>
                 </div>
             </div>
-        </div>
-    </header>
+        </header>
 
-    <!-- 主要內容區 -->
-    <main class="flex-1 overflow-y-auto p-6 no-scrollbar">
-        <div class="max-w-7xl mx-auto space-y-6">
+        <main class="p-6 max-w-7xl mx-auto">
             
-            <!-- 統計卡片 -->
-            <div class="grid grid-cols-4 gap-4">
-                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
-                    <div>
-                        <div class="text-xs text-gray-500 mb-1">物品總數</div>
-                        <div class="text-2xl font-bold text-gray-800">175 <span class="text-xs font-normal text-gray-400">筆</span></div>
-                    </div>
-                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-                    </div>
-                </div>
-                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
-                    <div>
-                        <div class="text-xs text-gray-500 mb-1">待處理</div>
-                        <div class="text-2xl font-bold text-orange-600" id="statPending">61 <span class="text-xs font-normal text-gray-400">筆</span></div>
-                    </div>
-                    <div class="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </div>
-                </div>
-                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
-                    <div>
-                        <div class="text-xs text-gray-500 mb-1">完成報廢</div>
-                        <div class="text-2xl font-bold text-green-600" id="statCompleted">114 <span class="text-xs font-normal text-gray-400">筆</span></div>
-                    </div>
-                    <div class="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-500">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    </div>
-                </div>
-                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between opacity-50">
-                    <div>
-                        <div class="text-xs text-gray-500 mb-1">未完成報廢</div>
-                        <div class="text-2xl font-bold text-gray-600">0 <span class="text-xs font-normal text-gray-400">筆</span></div>
-                    </div>
-                    <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </div>
-                </div>
-            </div>
-
-            <!-- NFC 區塊 -->
-            <div class="bg-green-50 rounded-xl p-5 border border-green-100 shadow-sm flex items-center justify-between relative overflow-hidden">
+            <!-- NFC 控制區 -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div class="flex items-center gap-4">
-                    <div class="w-14 h-14 bg-white rounded-2xl shadow-sm flex items-center justify-center text-green-600">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4m0 0H8m"></path></svg>
+                    <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center">
+                        <i data-lucide="nfc" class="w-6 h-6 text-green-600"></i>
                     </div>
                     <div>
                         <h2 class="text-lg font-bold text-gray-800">NFC 卡片登記</h2>
-                        <p class="text-sm text-gray-500 mt-1">請啟動 NFC，或將 USB 讀卡機游標置於卡號欄位。</p>
-                        <p id="nfcErrorMsg" class="text-xs text-red-500 mt-1 hidden font-bold">⚠️ 偵測到多張卡片或讀取錯誤，請單獨感應一張卡片！</p>
+                        <p class="text-sm text-gray-500">請啟動 NFC，並將感應卡放置於設備背後。</p>
                     </div>
                 </div>
-                <div class="flex flex-col items-end gap-2">
-                    <div class="text-xs text-gray-500 font-medium">目前卡號</div>
-                    <div class="flex items-center gap-2">
-                        <div class="relative">
-                            <input type="text" id="nfcInput" value="" placeholder="等待感應..." class="bg-white border border-gray-300 text-gray-800 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-48 p-2.5 outline-none font-mono">
-                            <button id="clearNfcBtn" class="absolute right-2 top-2 text-gray-400 hover:text-gray-600">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            </button>
-                        </div>
-                        <button id="startNfcBtn" class="bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg text-sm px-5 py-2.5 transition-colors">
-                            啟動 NFC
-                        </button>
+                
+                <div class="flex items-center gap-3">
+                    <div class="bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+                        <span class="text-xs text-gray-500 block">目前讀取卡號</span>
+                        <span id="nfc-card-id" class="font-mono font-bold text-gray-800">尚未讀取</span>
                     </div>
+                    <button id="clearNfcBtn" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-sm transition">
+                        清除
+                    </button>
+                    <button id="startNfcBtn" class="px-6 py-3 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-bold shadow-md transition flex items-center gap-2">
+                        <i data-lucide="wifi" class="w-4 h-4"></i>啟動 NFC
+                    </button>
                 </div>
             </div>
 
             <!-- 清單區塊 -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-                <div class="p-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between gap-4">
-                    <h2 class="text-md font-bold text-gray-800 whitespace-nowrap">待報廢物品清單</h2>
-                    
-                    <div class="flex flex-1 items-center gap-3">
-                        <select id="deptFilter" class="bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-32 p-2 outline-none">
-                            <option value="all">全部處室</option>
-                            <option value="車輛處">車輛處</option>
-                            <option value="資訊處">資訊處</option>
-                        </select>
-                        <select id="statusFilter" class="bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-32 p-2 outline-none">
-                            <option value="all">全部狀態</option>
-                            <option value="pending">待處理</option>
-                            <option value="completed">完成報廢</option>
-                        </select>
-                        <div class="relative flex-1 max-w-xs">
-                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                            </div>
-                            <input type="text" id="searchInput" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2 outline-none" placeholder="搜尋編號、名稱 (支援掃描槍)">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-6 border-b border-gray-100 bg-gray-50 flex flex-wrap gap-4 items-center justify-between">
+                    <h3 class="font-bold text-gray-800 flex items-center">
+                        <i data-lucide="list" class="w-5 h-5 mr-2 text-gray-400"></i>
+                        待報廢物品清單
+                    </h3>
+                    <!-- 搜尋與相機掃描 -->
+                    <div class="flex gap-2">
+                        <div class="relative">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-gray-400"></i>
+                            <input type="text" id="searchInput" placeholder="搜尋物品編號或名稱..." class="pl-9 pr-4 py-2 border rounded-lg text-sm w-64 focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
-                    </div>
-                </div>
-
-                <!-- 動作列 -->
-                <div class="px-4 py-3 bg-white border-b border-gray-100 flex justify-between items-center sticky top-0 z-10 shadow-sm">
-                    <div class="flex items-center gap-3">
-                        <span class="text-sm text-gray-600 font-medium bg-gray-100 px-3 py-1 rounded-md" id="selectedCountText">已選取 0 筆</span>
-                        <button id="viewSelectedBtn" class="text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 px-4 py-1.5 rounded-md transition-colors flex items-center gap-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-                            <span id="viewSelectedBtnText">檢視已選取資料</span>
-                        </button>
-                        <button id="batchProcessBtn" class="text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 border border-blue-700 px-6 py-1.5 rounded-md transition-colors shadow-sm hidden">
-                            進行報廢
-                        </button>
-                        <button id="batchReviseBtn" class="text-sm font-medium text-white bg-red-600 hover:bg-red-700 border border-red-700 px-6 py-1.5 rounded-md transition-colors shadow-sm hidden flex items-center gap-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                            修正
+                        <button onclick="startCameraScanner()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition">
+                            <i data-lucide="camera" class="w-4 h-4"></i> 掃描條碼
                         </button>
                     </div>
                 </div>
 
-                <div class="overflow-x-auto relative min-h-[300px]">
-                    <table class="w-full text-sm text-left text-gray-500">
-                        <thead class="text-xs text-gray-700 bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th class="p-4 w-10 text-center">選取</th>
+                <div class="p-4 bg-white border-b border-gray-100 flex gap-3 items-center">
+                    <span class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold">已選取 <span id="selectedCount">0</span> 筆</span>
+                    <button id="viewSelectedBtn" class="border border-green-200 text-green-700 bg-green-50 px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-100 transition flex items-center gap-2">
+                        <i data-lucide="check-square" class="w-4 h-4"></i> 檢視已選取資料
+                    </button>
+                    <!-- 動態按鈕：報廢或修正 -->
+                    <button id="actionBtn" class="hidden px-6 py-2 rounded-lg text-sm font-bold text-white shadow-md transition ml-auto flex items-center gap-2">
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-500 text-sm border-b">
+                                <th class="p-4 w-12 text-center">選取</th>
                                 <th class="p-4">物品 / 編號</th>
                                 <th class="p-4">處室 / 報廢單號</th>
                                 <th class="p-4">保管人 / 存置地點</th>
-                                <th class="p-4 text-center">處理狀態</th>
-                                <th class="p-4 w-48">備註 / 簽名</th>
+                                <th class="p-4">處理狀態</th>
+                                <th class="p-4 w-64">備註 / 簽名</th>
                             </tr>
                         </thead>
-                        <tbody id="tableBody">
-                            <!-- JS 動態生成 -->
+                        <tbody id="tableBody" class="divide-y divide-gray-100 text-sm">
+                            <!-- JS 動態產生 -->
                         </tbody>
                     </table>
                 </div>
             </div>
-        </div>
+        </main>
+    </div>
 
-        <!-- 進行報廢 Modal (包含畫布) -->
-        <div id="processModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div class="bg-white rounded-xl shadow-lg w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
-                    <h3 class="text-lg font-bold text-gray-800">完成報廢程序</h3>
-                    <button id="closeProcessBtn" class="text-gray-400 hover:text-gray-600 focus:outline-none">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
+    <!-- 相機掃描 Modal -->
+    <div id="scannerModal" class="modal flex">
+        <div class="bg-white rounded-2xl p-6 w-[90%] max-w-md shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-800">相機掃描</h2>
+                <button onclick="closeScannerModal()" class="text-gray-400 hover:text-gray-700"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <div id="scanner-container" class="rounded-lg overflow-hidden bg-black"></div>
+            <p class="text-sm text-gray-500 mt-4 text-center">請將設備條碼/QR Code置於畫面中央</p>
+        </div>
+    </div>
+
+    <!-- 簽名與報廢確認 Modal -->
+    <div id="signModal" class="modal flex">
+        <div class="bg-white rounded-2xl p-6 w-[90%] max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-800">確認報廢與簽名</h2>
+                <button onclick="closeSignModal()" class="text-gray-400 hover:text-gray-700"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <div class="mb-4">
+                <p class="text-sm text-gray-600 mb-2 font-bold">即將報廢的物品清單：</p>
+                <div id="modalItemsList" class="bg-gray-50 p-3 rounded-lg border text-sm max-h-32 overflow-y-auto"></div>
+            </div>
+            <div class="flex-1 flex flex-col">
+                <div class="flex justify-between items-end mb-2">
+                    <p class="text-sm text-gray-600 font-bold">請在下方空白處簽名：</p>
+                    <button onclick="clearCanvas()" class="text-red-500 text-sm font-bold hover:underline">清除重簽</button>
                 </div>
-                <div class="p-5 overflow-y-auto">
-                    <div class="mb-4">
-                        <h4 class="text-sm font-bold text-gray-700 mb-2">即將報廢的物品清單：</h4>
-                        <ul id="processItemList" class="bg-gray-50 rounded-lg p-3 border border-gray-100 max-h-32 overflow-y-auto">
-                            <!-- JS 生成 -->
-                        </ul>
-                    </div>
-                    <div>
-                        <div class="flex justify-between items-end mb-2">
-                            <h4 class="text-sm font-bold text-gray-700">請在下方空白處簽名：</h4>
-                            <button id="clearCanvasBtn" class="text-xs text-red-500 hover:text-red-700 font-medium">清除重簽</button>
-                        </div>
-                        <div class="border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 relative w-full h-48 touch-none">
-                            <canvas id="signatureCanvas" class="absolute inset-0 w-full h-full cursor-crosshair rounded-lg"></canvas>
-                        </div>
-                    </div>
+                <canvas id="signatureCanvas"></canvas>
+            </div>
+            <button onclick="confirmDisposal()" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition text-lg">
+                確認報廢並儲存
+            </button>
+        </div>
+    </div>
+
+    <!-- 新增備註 Modal -->
+    <div id="remarkModal" class="modal flex">
+        <div class="bg-white rounded-2xl p-6 w-[90%] max-w-md shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-800">新增備註狀態</h2>
+                <button onclick="closeRemarkModal()" class="text-gray-400 hover:text-gray-700"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            
+            <div class="space-y-3 mb-6">
+                <!-- 選項 1 -->
+                <div class="remark-option" id="opt-power" onclick="toggleOption('opt-power')">
+                    <span class="font-bold text-gray-700">缺電源線</span>
+                    <input type="number" id="qty-power" value="1" min="1" class="number-input" onclick="event.stopPropagation()">
                 </div>
-                <div class="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50 shrink-0">
-                    <button id="cancelProcessBtn" class="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 transition-colors">取消</button>
-                    <button id="confirmProcessBtn" class="px-5 py-2.5 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-colors">確認報廢</button>
+                <!-- 選項 2 -->
+                <div class="remark-option" id="opt-cable" onclick="toggleOption('opt-cable')">
+                    <span class="font-bold text-gray-700">缺傳輸線</span>
+                    <input type="number" id="qty-cable" value="1" min="1" class="number-input" onclick="event.stopPropagation()">
+                </div>
+                <!-- 選項 3 (無數量) -->
+                <div class="remark-option" id="opt-broken" onclick="toggleOption('opt-broken')">
+                    <span class="font-bold text-gray-700">設備損毀</span>
                 </div>
             </div>
-        </div>
 
-        <!-- 新增備註 Modal -->
-        <div id="remarkModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div class="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col">
-                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                    <h3 class="text-lg font-bold text-gray-800">新增備註狀態</h3>
-                    <button id="closeRemarkBtn" class="text-gray-400 hover:text-gray-600 focus:outline-none">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
-                <div class="p-5 overflow-y-auto max-h-[60vh]">
-                    <div class="space-y-3">
-                        <!-- 選項 1 -->
-                        <div class="remark-option flex items-center justify-between p-3 border border-gray-200 rounded-lg cursor-pointer transition-colors hover:border-blue-300" data-type="缺電源線">
-                            <div class="flex items-center gap-3 pointer-events-none">
-                                <span class="font-medium text-gray-700">缺電源線</span>
-                            </div>
-                            <input type="number" min="1" value="1" class="w-16 border border-gray-300 rounded p-1 text-center text-sm" onclick="event.stopPropagation()">
-                        </div>
-                        <!-- 選項 2 -->
-                        <div class="remark-option flex items-center justify-between p-3 border border-gray-200 rounded-lg cursor-pointer transition-colors hover:border-blue-300" data-type="缺傳輸線">
-                            <div class="flex items-center gap-3 pointer-events-none">
-                                <span class="font-medium text-gray-700">缺傳輸線</span>
-                            </div>
-                            <input type="number" min="1" value="1" class="w-16 border border-gray-300 rounded p-1 text-center text-sm" onclick="event.stopPropagation()">
-                        </div>
-                        <!-- 選項 3 (無數量) -->
-                        <div class="remark-option flex items-center justify-between p-3 border border-gray-200 rounded-lg cursor-pointer transition-colors hover:border-blue-300" data-type="設備損毀">
-                            <div class="flex items-center gap-3 pointer-events-none">
-                                <span class="font-medium text-gray-700">設備損毀</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-4 pt-4 border-t border-gray-100">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">其他狀況說明</label>
-                        <textarea id="otherRemarkInput" class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" rows="3" placeholder="請輸入其他備註事項..."></textarea>
-                    </div>
-                </div>
-                <div class="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">
-                    <button id="cancelRemarkBtn" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 transition-colors">取消</button>
-                    <button id="confirmRemarkBtn" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-colors">確認新增</button>
-                </div>
+            <div class="mb-6">
+                <p class="text-sm text-gray-600 mb-2 font-bold">其他狀況說明</p>
+                <textarea id="customRemark" rows="2" class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="請輸入其他備註事項..."></textarea>
+            </div>
+
+            <button id="confirmRemarkBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition">確認新增</button>
+        </div>
+    </div>
+
+    <!-- 紀錄查詢 Modal -->
+    <div id="recordModal" class="modal flex">
+        <div class="bg-white rounded-2xl p-6 w-[90%] max-w-3xl shadow-2xl max-h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-800">已完成報廢紀錄</h2>
+                <button onclick="closeRecordModal()" class="text-gray-400 hover:text-gray-700"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <div class="overflow-y-auto border rounded-lg">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-gray-50 text-gray-500 sticky top-0">
+                        <tr>
+                            <th class="p-3">時間</th>
+                            <th class="p-3">單號</th>
+                            <th class="p-3">物品 / 編號</th>
+                            <th class="p-3">保管人</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordTableBody" class="divide-y"></tbody>
+                </table>
             </div>
         </div>
-
-        <!-- 密碼輸入 Modal -->
-        <div id="passwordModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div class="bg-white rounded-xl shadow-lg w-full max-w-sm overflow-hidden flex flex-col">
-                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                    <h3 class="text-md font-bold text-gray-800">需要權限驗證</h3>
-                    <button id="closePasswordBtn" class="text-gray-400 hover:text-gray-600 focus:outline-none">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
-                <div class="p-5">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">請輸入管理員密碼以進行修正</label>
-                    <input type="password" id="revisePassword" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500" placeholder="預設密碼: 1234">
-                    <p id="passwordError" class="text-red-500 text-xs mt-2 hidden">密碼錯誤，請重新輸入</p>
-                </div>
-                <div class="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">
-                    <button id="cancelPasswordBtn" class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 transition-colors">取消</button>
-                    <button id="submitPasswordBtn" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 shadow-sm transition-colors">確認驗證</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 報廢紀錄查詢 Modal -->
-        <div id="historyModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div class="bg-white rounded-xl shadow-lg w-full max-w-2xl overflow-hidden flex flex-col max-h-[80vh]">
-                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
-                    <h3 class="text-md font-bold text-gray-800">近期報廢紀錄</h3>
-                    <button id="closeHistoryBtn" class="text-gray-400 hover:text-gray-600 focus:outline-none">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
-                <div class="p-0 overflow-y-auto bg-white flex-1">
-                    <ul id="historyList" class="divide-y divide-gray-100">
-                        <!-- JS 動態生成歷史紀錄 -->
-                    </ul>
-                </div>
-                <div class="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50 shrink-0">
-                    <button id="cancelHistoryBtn" class="px-5 py-2 rounded-lg text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors">關閉視窗</button>
-                </div>
-            </div>
-        </div>
-
-    </main>
+    </div>
 
     <script>
-        // --- 0. 系統存取密碼鎖 (App Lock) ---
-        const APP_PASSWORD = "aa8471"; // ★ 在這裡設定你的系統進入密碼
-        const appLockOverlay = document.getElementById('appLockOverlay');
-        const appLockPassword = document.getElementById('appLockPassword');
-        const appLockBtn = document.getElementById('appLockBtn');
-        const appLockError = document.getElementById('appLockError');
+        lucide.createIcons();
 
-        // 檢查是否已經登入過
-        if (sessionStorage.getItem('isAppUnlocked') === 'true') {
-            appLockOverlay.style.display = 'none';
-        }
+        // 系統密碼 (可在此修改)
+        const APP_PASSWORD = "8888";
 
-        function unlockApp() {
-            if (appLockPassword.value === APP_PASSWORD) {
-                sessionStorage.setItem('isAppUnlocked', 'true');
-                appLockOverlay.classList.add('opacity-0');
-                setTimeout(() => {
-                    appLockOverlay.style.display = 'none';
-                }, 300);
+        // 資料庫 (支援真假資料)
+        let data = [
+            { id: 1, 報廢單號: "I26000230", 物品編號: "62001003-00049", 物品名稱: "平板電腦", 保管單位: "車輛處", 保管人: "余錦龍", 存置地點: "土城機廠", status: "completed", signImg: "", date: "2026-11-05 10:00", remarks: ["螢幕破裂"] },
+            { id: 2, 報廢單號: "I26000230", 物品編號: "62006003-01967", 物品名稱: "讀卡機", 保管單位: "車輛處", 保管人: "余錦龍", 存置地點: "土城機廠", status: "pending", signImg: "", date: "", remarks: [] },
+            { id: 3, 報廢單號: "I26000230", 物品編號: "62006006-00069", 物品名稱: "條碼閱讀機", 保管單位: "車輛處", 保管人: "余錦龍", 存置地點: "土城機廠", status: "pending", signImg: "", date: "", remarks: [] },
+        ];
+
+        let selectedIds = new Set();
+        let currentRemarkItemId = null;
+        let viewOnlySelected = false;
+        let html5QrcodeScanner = null;
+
+        // --- 密碼鎖邏輯 ---
+        function checkPassword() {
+            const input = document.getElementById('passwordInput').value;
+            if(input === APP_PASSWORD) {
+                document.getElementById('lockScreen').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                renderTable();
             } else {
-                appLockError.classList.remove('hidden');
-                appLockPassword.value = '';
-                appLockPassword.focus();
+                document.getElementById('passwordError').style.display = 'block';
             }
         }
 
-        appLockBtn.addEventListener('click', unlockApp);
-        appLockPassword.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') unlockApp();
+        // --- NFC 邏輯強化 ---
+        const startNfcBtn = document.getElementById('startNfcBtn');
+        const clearNfcBtn = document.getElementById('clearNfcBtn');
+        const nfcDisplay = document.getElementById('nfc-card-id');
+
+        startNfcBtn.addEventListener('click', async () => {
+            if (!('NDEFReader' in window)) {
+                alert("此瀏覽器不支援 Web NFC。請確認您使用 Android 手機的 Google Chrome 瀏覽器。");
+                return;
+            }
+            try {
+                startNfcBtn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>掃描中...';
+                const ndef = new NDEFReader();
+                await ndef.scan();
+                
+                ndef.onreading = event => {
+                    const serialNumber = event.serialNumber;
+                    if(serialNumber) {
+                        nfcDisplay.textContent = serialNumber;
+                        nfcDisplay.classList.add('text-green-600');
+                        startNfcBtn.innerHTML = '<i data-lucide="wifi" class="w-4 h-4"></i>啟動 NFC';
+                        alert("✅ 讀取成功！卡號: " + serialNumber);
+                    }
+                };
+
+                // 加入錯誤偵測
+                ndef.onreadingerror = (event) => {
+                    alert("❌ 讀取錯誤：卡片感應不良，或是此卡片加密格式不支援 Web NFC。");
+                    startNfcBtn.innerHTML = '<i data-lucide="wifi" class="w-4 h-4"></i>啟動 NFC';
+                };
+
+            } catch (error) {
+                console.error(error);
+                alert("啟動 NFC 失敗，請確認是否已授權瀏覽器使用 NFC 功能。錯誤訊息: " + error);
+                startNfcBtn.innerHTML = '<i data-lucide="wifi" class="w-4 h-4"></i>啟動 NFC';
+            }
         });
 
-        // --- 1. 資料模型 (State) ---
-        let items = [
-            { id: 1, name: '平板電腦', code: '62001003-00049', dept: '車輛處', orderNum: 'I26000230', custodian: '余錦龍', location: '土城機廠', status: 'completed', selected: false, signature: null, remarks: [], completedAt: '2026-11-04 10:30' },
-            { id: 2, name: '讀卡機', code: '62006003-01967', dept: '車輛處', orderNum: 'I26000230', custodian: '余錦龍', location: '土城機廠', status: 'pending', selected: false, signature: null, remarks: [], completedAt: null },
-            { id: 3, name: '條碼閱讀機', code: '62006006-00069', dept: '車輛處', orderNum: 'I26000230', custodian: '余錦龍', location: '土城機廠', status: 'pending', selected: false, signature: null, remarks: [], completedAt: null },
-            { id: 4, name: '平板電腦', code: '62001003-00058', dept: '車輛處', orderNum: 'I26000258', custodian: '林明輝', location: '土城機廠', status: 'pending', selected: false, signature: null, remarks: [], completedAt: null },
-            { id: 5, name: '筆記型電腦', code: '62001001-00112', dept: '資訊處', orderNum: 'I26000300', custodian: '王大明', location: '北投機廠', status: 'pending', selected: false, signature: null, remarks: [], completedAt: null },
-        ];
+        clearNfcBtn.addEventListener('click', () => {
+            nfcDisplay.textContent = "尚未讀取";
+            nfcDisplay.classList.remove('text-green-600');
+        });
 
-        // --- 2. 節點參考 ---
-        const tableBody = document.getElementById('tableBody');
-        const deptFilter = document.getElementById('deptFilter');
-        const statusFilter = document.getElementById('statusFilter');
-        const searchInput = document.getElementById('searchInput');
-        const statPending = document.getElementById('statPending');
-        const statCompleted = document.getElementById('statCompleted');
-        const nfcInput = document.getElementById('nfcInput');
-        const nfcErrorMsg = document.getElementById('nfcErrorMsg');
-        
-        let isViewingSelectedOnly = false;
-        const viewSelectedBtn = document.getElementById('viewSelectedBtn');
-        const viewSelectedBtnText = document.getElementById('viewSelectedBtnText');
-        const selectedCountText = document.getElementById('selectedCountText');
-        const batchProcessBtn = document.getElementById('batchProcessBtn');
-        const batchReviseBtn = document.getElementById('batchReviseBtn');
+        // --- 相機掃描邏輯 ---
+        function startCameraScanner() {
+            document.getElementById('scannerModal').style.display = 'flex';
+            html5QrcodeScanner = new Html5Qrcode("scanner-container");
+            
+            const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+            html5QrcodeScanner.start({ facingMode: "environment" }, config, 
+                (decodedText) => {
+                    // 掃描成功
+                    document.getElementById('searchInput').value = decodedText;
+                    closeScannerModal();
+                    renderTable(); // 觸發搜尋
+                    // 發出提示音或震動(可選)
+                    if (navigator.vibrate) navigator.vibrate(100);
+                },
+                (errorMessage) => {
+                    // 掃描中忽略錯誤
+                }
+            ).catch((err) => {
+                alert("無法啟動相機，請確認權限是否開啟！");
+            });
+        }
 
-        // 檢視已選取切換
-        viewSelectedBtn.addEventListener('click', () => {
-            isViewingSelectedOnly = !isViewingSelectedOnly;
-            if (isViewingSelectedOnly) {
-                viewSelectedBtn.classList.replace('bg-green-50', 'bg-green-600');
-                viewSelectedBtn.classList.replace('text-green-700', 'text-white');
-                viewSelectedBtnText.innerText = "顯示所有資料";
+        function closeScannerModal() {
+            document.getElementById('scannerModal').style.display = 'none';
+            if(html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    html5QrcodeScanner.clear();
+                }).catch(err => console.log(err));
+            }
+        }
+
+
+        // --- 表格與資料邏輯 ---
+        function toggleMenu() {
+            const menu = document.getElementById('settingsMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        document.getElementById('searchInput').addEventListener('input', renderTable);
+
+        document.getElementById('viewSelectedBtn').addEventListener('click', () => {
+            viewOnlySelected = !viewOnlySelected;
+            const btn = document.getElementById('viewSelectedBtn');
+            if (viewOnlySelected) {
+                btn.classList.replace('bg-green-50', 'bg-green-600');
+                btn.classList.replace('text-green-700', 'text-white');
             } else {
-                viewSelectedBtn.classList.replace('bg-green-600', 'bg-green-50');
-                viewSelectedBtn.classList.replace('text-white', 'text-green-700');
-                viewSelectedBtnText.innerText = "檢視已選取資料";
+                btn.classList.replace('bg-green-600', 'bg-green-50');
+                btn.classList.replace('text-white', 'text-green-700');
             }
             renderTable();
         });
 
-        // --- 3. NFC 模擬功能 ---
-        document.getElementById('clearNfcBtn').addEventListener('click', () => {
-            nfcInput.value = '';
-            nfcErrorMsg.classList.add('hidden');
-        });
+        function toggleSelect(id) {
+            if (selectedIds.has(id)) selectedIds.delete(id);
+            else selectedIds.add(id);
+            updateActionUI();
+        }
 
-        document.getElementById('startNfcBtn').addEventListener('click', async () => {
-            nfcInput.value = "讀取中...";
-            nfcErrorMsg.classList.add('hidden');
-            try {
-                if ('NDEFReader' in window) {
-                    const ndef = new NDEFReader();
-                    await ndef.scan();
-                    ndef.addEventListener("reading", ({ message, serialNumber }) => {
-                        nfcInput.value = serialNumber;
-                        nfcErrorMsg.classList.add('hidden');
-                    });
-                    ndef.addEventListener("readingerror", () => {
-                        nfcInput.value = "";
-                        nfcErrorMsg.classList.remove('hidden');
-                    });
-                } else {
-                    setTimeout(() => { 
-                        nfcInput.value = "1213035557 (測試卡號)"; 
-                    }, 800);
-                }
-            } catch (error) {
-                nfcInput.value = "NFC 失敗/不支援";
-            }
-        });
-
-        // --- 4. 渲染表格 ---
-        function renderTable() {
-            tableBody.innerHTML = '';
+        function updateActionUI() {
+            document.getElementById('selectedCount').textContent = selectedIds.size;
+            const btn = document.getElementById('actionBtn');
             
-            // 更新統計與按鈕狀態
-            statCompleted.innerText = items.filter(i => i.status === 'completed').length;
-            statPending.innerText = items.filter(i => i.status === 'pending').length;
-
-            const selectedCount = items.filter(i => i.selected).length;
-            const selectedCompletedCount = items.filter(i => i.selected && i.status === 'completed').length;
-            selectedCountText.innerText = `已選取 ${selectedCount} 筆`;
-            
-            if (selectedCount > 0) {
-                if (selectedCount === selectedCompletedCount) {
-                    batchProcessBtn.classList.add('hidden');
-                    batchReviseBtn.classList.remove('hidden');
-                } else {
-                    batchProcessBtn.classList.remove('hidden');
-                    batchReviseBtn.classList.add('hidden');
-                }
-            } else {
-                batchProcessBtn.classList.add('hidden');
-                batchReviseBtn.classList.add('hidden');
+            if (selectedIds.size === 0) {
+                btn.classList.add('hidden');
+                return;
             }
+            btn.classList.remove('hidden');
 
-            // 過濾並渲染資料
-            const filteredItems = items.filter(item => {
-                const matchDept = deptFilter.value === 'all' || item.dept === deptFilter.value;
-                const matchStatus = statusFilter.value === 'all' || item.status === statusFilter.value;
-                const matchSearch = item.code.includes(searchInput.value) || item.name.includes(searchInput.value) || item.custodian.includes(searchInput.value);
-                
-                if (isViewingSelectedOnly) {
-                    return item.selected && matchDept && matchStatus && matchSearch;
-                }
-                return matchDept && matchStatus && matchSearch;
+            const allCompleted = Array.from(selectedIds).every(id => {
+                const item = data.find(d => d.id === id);
+                return item && item.status === 'completed';
             });
 
-            filteredItems.forEach(item => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-gray-50 transition-colors";
-                
-                // 狀態標籤構建
-                let statusBadge = '';
-                if (item.status === 'completed') {
-                    statusBadge = `<span class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">完成報廢</span>`;
-                    if (item.completedAt) {
-                        statusBadge += `<div class="text-[10px] text-gray-400 mt-1.5 whitespace-nowrap">${item.completedAt}</div>`;
+            if (allCompleted) {
+                btn.innerHTML = '<i data-lucide="rotate-ccw" class="w-4 h-4"></i> 修正 (退回待處理)';
+                btn.className = "px-6 py-2 rounded-lg text-sm font-bold text-white shadow-md transition ml-auto flex items-center gap-2 bg-red-600 hover:bg-red-700";
+                btn.onclick = revertStatus;
+            } else {
+                btn.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i> 進行報廢';
+                btn.className = "px-6 py-2 rounded-lg text-sm font-bold text-white shadow-md transition ml-auto flex items-center gap-2 bg-blue-600 hover:bg-blue-700";
+                btn.onclick = openSignModal;
+            }
+            lucide.createIcons();
+        }
+
+        function revertStatus() {
+            const pwd = prompt("請輸入授權密碼以修正狀態 (預設為 1234)：");
+            if (pwd === "1234") {
+                selectedIds.forEach(id => {
+                    const item = data.find(d => d.id === id);
+                    if(item) {
+                        item.status = 'pending';
+                        item.signImg = '';
+                        item.date = '';
                     }
+                });
+                selectedIds.clear();
+                alert("已成功退回為「待處理」狀態");
+                renderTable();
+                updateActionUI();
+            } else {
+                alert("密碼錯誤，取消修正。");
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            tbody.innerHTML = '';
+
+            let filteredData = data.filter(item => {
+                if (viewOnlySelected && !selectedIds.has(item.id)) return false;
+                return item.物品編號.toLowerCase().includes(search) || item.物品名稱.toLowerCase().includes(search);
+            });
+
+            filteredData.forEach(item => {
+                const isSelected = selectedIds.has(item.id);
+                
+                let statusBadge = "";
+                if (item.status === 'completed') {
+                    statusBadge = `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap"><i data-lucide="check" class="w-3 h-3 inline mr-1"></i>完成報廢</span>
+                                   <div class="text-[11px] text-gray-400 mt-1">${item.date}</div>`;
                 } else {
-                    statusBadge = `<span class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">待處理</span>`;
+                    statusBadge = `<span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap">待處理</span>`;
                 }
 
-                // 備註標籤構建
-                const remarksHTML = item.remarks.map(r => 
-                    `<span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded border border-blue-100 cursor-pointer hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors delete-remark" data-id="${item.id}" data-remark="${r}">
-                        ${r}
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </span>`
-                ).join(' ');
+                // 產生備註標籤 HTML
+                let remarksHtml = item.remarks.map((rmk, idx) => 
+                    `<span class="remark-tag" onclick="removeRemark(${item.id}, ${idx})" title="點擊刪除">
+                        ${rmk} <span class="ml-1 text-[10px]">✕</span>
+                     </span>`
+                ).join('');
+
+                let signHtml = item.signImg ? `<img src="${item.signImg}" class="h-10 border rounded bg-white object-contain inline-block ml-2">` : '';
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50 transition cursor-pointer';
+                tr.onclick = (e) => {
+                    if (!e.target.closest('input[type="checkbox"]') && !e.target.closest('button') && !e.target.closest('.remark-tag')) {
+                        toggleSelect(item.id);
+                        document.getElementById(`chk-${item.id}`).checked = selectedIds.has(item.id);
+                    }
+                };
 
                 tr.innerHTML = `
-                    <td class="p-4 border-b border-gray-100 text-center">
-                        <input type="checkbox" class="item-checkbox w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer" data-id="${item.id}" ${item.selected ? 'checked' : ''}>
+                    <td class="p-4 text-center">
+                        <input type="checkbox" id="chk-${item.id}" class="w-5 h-5 text-blue-600 rounded cursor-pointer" ${isSelected ? 'checked' : ''} onchange="toggleSelect(${item.id})">
                     </td>
-                    <td class="p-4 border-b border-gray-100">
-                        <div class="font-bold text-gray-800">${item.name}</div>
-                        <div class="text-xs text-gray-500 mt-1">${item.code}</div>
+                    <td class="p-4">
+                        <div class="font-bold text-gray-800">${item.物品名稱}</div>
+                        <div class="text-xs text-gray-500 font-mono">${item.物品編號}</div>
                     </td>
-                    <td class="p-4 border-b border-gray-100">
-                        <div class="font-bold text-gray-800">${item.dept}</div>
-                        <div class="text-xs text-gray-500 mt-1">${item.orderNum}</div>
+                    <td class="p-4">
+                        <div class="text-gray-800">${item.保管單位}</div>
+                        <div class="text-xs text-gray-500 font-mono">${item.報廢單號}</div>
                     </td>
-                    <td class="p-4 border-b border-gray-100">
-                        <div class="font-bold text-gray-800">${item.custodian}</div>
-                        <div class="text-xs text-gray-500 mt-1">${item.location}</div>
+                    <td class="p-4">
+                        <div class="font-bold text-gray-800">${item.保管人}</div>
+                        <div class="text-xs text-gray-500">${item.存置地點}</div>
                     </td>
-                    <td class="p-4 border-b border-gray-100 text-center">
-                        ${statusBadge}
-                    </td>
-                    <td class="p-4 border-b border-gray-100">
-                        <div class="flex flex-col gap-2">
-                            <div class="flex flex-wrap gap-1">
-                                ${remarksHTML}
-                            </div>
-                            ${item.signature ? `<img src="${item.signature}" class="h-10 border rounded bg-white shadow-sm" alt="簽名">` : ''}
-                            <button class="add-remark-btn text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium w-fit" data-id="${item.id}">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                新增備註
+                    <td class="p-4">${statusBadge}</td>
+                    <td class="p-4">
+                        <div class="flex flex-wrap items-center gap-1">
+                            ${remarksHtml}
+                            <button onclick="openRemarkModal(${item.id}); event.stopPropagation();" class="text-gray-400 hover:text-blue-500 px-2 py-1 rounded text-xs border border-dashed border-gray-300">
+                                + 新增備註
                             </button>
+                            ${signHtml}
                         </div>
                     </td>
                 `;
-                tableBody.appendChild(tr);
+                tbody.appendChild(tr);
             });
-
-            // 綁定 Checkbox 事件
-            document.querySelectorAll('.item-checkbox').forEach(cb => {
-                cb.addEventListener('change', (e) => {
-                    const id = parseInt(e.target.getAttribute('data-id'));
-                    const item = items.find(i => i.id === id);
-                    if (item) {
-                        item.selected = e.target.checked;
-                        renderTable();
-                    }
-                });
-            });
-
-            // 綁定「刪除備註」事件
-            document.querySelectorAll('.delete-remark').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const id = parseInt(e.currentTarget.getAttribute('data-id'));
-                    const remarkToDelete = e.currentTarget.getAttribute('data-remark');
-                    const item = items.find(i => i.id === id);
-                    if (item) {
-                        item.remarks = item.remarks.filter(r => r !== remarkToDelete);
-                        renderTable();
-                    }
-                });
-            });
-
-            // 綁定開啟備註 Modal 事件
-            document.querySelectorAll('.add-remark-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    currentRemarkItemId = parseInt(e.target.closest('.add-remark-btn').getAttribute('data-id'));
-                    resetRemarkModal();
-                    document.getElementById('remarkModal').classList.remove('hidden');
-                });
-            });
+            lucide.createIcons();
         }
 
-        // --- 5. 篩選與搜尋事件監聽 ---
-        deptFilter.addEventListener('change', renderTable);
-        statusFilter.addEventListener('change', renderTable);
-        searchInput.addEventListener('input', renderTable);
-
-        // --- 6. 掃描槍支援 ---
-        let barcodeBuffer = '';
-        let barcodeTimeout;
-        document.addEventListener('keydown', (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-            if (e.key === 'Enter') {
-                if (barcodeBuffer.length > 0) {
-                    searchInput.value = barcodeBuffer;
-                    renderTable();
-                    barcodeBuffer = '';
-                }
-            } else if (e.key.length === 1) {
-                barcodeBuffer += e.key;
-                clearTimeout(barcodeTimeout);
-                barcodeTimeout = setTimeout(() => { barcodeBuffer = ''; }, 100);
-            }
-        });
-
-        // --- 7. 簽名畫布處理 ---
+        // --- 畫布與簽名邏輯 ---
         const canvas = document.getElementById('signatureCanvas');
         const ctx = canvas.getContext('2d');
         let isDrawing = false;
-        let lastX = 0;
-        let lastY = 0;
 
         function resizeCanvas() {
-            const rect = canvas.parentElement.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = 192; // h-48 = 192px
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 3;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
         }
-        window.addEventListener('resize', resizeCanvas);
 
         function startDrawing(e) {
             isDrawing = true;
-            const pos = getPos(e);
-            [lastX, lastY] = [pos.x, pos.y];
+            draw(e);
         }
-
+        function stopDrawing() {
+            isDrawing = false;
+            ctx.beginPath();
+        }
         function draw(e) {
             if (!isDrawing) return;
             e.preventDefault();
-            const pos = getPos(e);
-            ctx.beginPath();
-            ctx.moveTo(lastX, lastY);
-            ctx.lineTo(pos.x, pos.y);
-            ctx.stroke();
-            [lastX, lastY] = [pos.x, pos.y];
-        }
-
-        function stopDrawing() { isDrawing = false; }
-
-        function getPos(e) {
             const rect = canvas.getBoundingClientRect();
-            let clientX = e.clientX;
-            let clientY = e.clientY;
-            if (e.touches && e.touches.length > 0) {
-                clientX = e.touches[0].clientX;
-                clientY = e.touches[0].clientY;
-            }
-            return { x: clientX - rect.left, y: clientY - rect.top };
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#000';
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
         }
 
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('mousemove', draw);
         canvas.addEventListener('mouseup', stopDrawing);
         canvas.addEventListener('mouseout', stopDrawing);
-        canvas.addEventListener('touchstart', startDrawing, { passive: false });
-        canvas.addEventListener('touchmove', draw, { passive: false });
+        canvas.addEventListener('touchstart', startDrawing, {passive: false});
+        canvas.addEventListener('touchmove', draw, {passive: false});
         canvas.addEventListener('touchend', stopDrawing);
 
-        document.getElementById('clearCanvasBtn').addEventListener('click', () => {
+        function clearCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-        });
-
-        // --- 8. Modals 控制與送出 ---
-        const remarkModal = document.getElementById('remarkModal');
-        const processModal = document.getElementById('processModal');
-        const passwordModal = document.getElementById('passwordModal');
-        const historyModal = document.getElementById('historyModal');
-        let currentRemarkItemId = null;
-
-        const closeModals = () => {
-            remarkModal.classList.add('hidden');
-            processModal.classList.add('hidden');
-            passwordModal.classList.add('hidden');
-            historyModal.classList.add('hidden');
-        };
-
-        // 綁定關閉按鈕
-        document.getElementById('closeRemarkBtn').addEventListener('click', closeModals);
-        document.getElementById('cancelRemarkBtn').addEventListener('click', closeModals);
-        document.getElementById('closeProcessBtn').addEventListener('click', closeModals);
-        document.getElementById('cancelProcessBtn').addEventListener('click', closeModals);
-        document.getElementById('closePasswordBtn').addEventListener('click', closeModals);
-        document.getElementById('cancelPasswordBtn').addEventListener('click', closeModals);
-        document.getElementById('closeHistoryBtn').addEventListener('click', closeModals);
-        document.getElementById('cancelHistoryBtn').addEventListener('click', closeModals);
-
-        // 備註互動
-        const remarkOptions = document.querySelectorAll('.remark-option');
-        const otherRemarkInput = document.getElementById('otherRemarkInput');
-        function resetRemarkModal() {
-            remarkOptions.forEach(opt => {
-                opt.classList.remove('border-blue-500', 'bg-blue-50');
-                opt.classList.add('border-gray-200');
-                const numInput = opt.querySelector('input[type="number"]');
-                if (numInput) numInput.value = "1";
-            });
-            otherRemarkInput.value = "";
         }
 
-        remarkOptions.forEach(opt => {
-            opt.addEventListener('click', (e) => {
-                if (e.target.tagName === 'INPUT') return;
-                opt.classList.toggle('border-blue-500');
-                opt.classList.toggle('bg-blue-50');
-                opt.classList.toggle('border-gray-200');
-            });
-        });
-
-        document.getElementById('confirmRemarkBtn').addEventListener('click', () => {
-            if (currentRemarkItemId === null) return;
-            const item = items.find(i => i.id === currentRemarkItemId);
-            if (item) {
-                const newRemarks = [];
-                remarkOptions.forEach(opt => {
-                    if (opt.classList.contains('border-blue-500')) {
-                        let text = opt.getAttribute('data-type');
-                        const numInput = opt.querySelector('input[type="number"]');
-                        if (numInput) text += ` ${numInput.value}`;
-                        newRemarks.push(text);
-                    }
-                });
-                if (otherRemarkInput.value.trim() !== "") newRemarks.push(otherRemarkInput.value.trim());
-                item.remarks = [...new Set([...item.remarks, ...newRemarks])];
-                renderTable();
-            }
-            closeModals();
-        });
-
-        // 進行報廢
-        batchProcessBtn.addEventListener('click', () => {
-            const selectedItems = items.filter(i => i.selected && i.status === 'pending');
-            if (selectedItems.length === 0) return;
-
-            document.getElementById('processItemList').innerHTML = selectedItems.map(i => `
-                <li class="py-2 border-b border-gray-50 last:border-0 text-sm text-gray-700">
-                    <span class="font-medium text-gray-900">${i.name}</span> <span class="text-gray-500">(${i.code})</span>
-                </li>
-            `).join('');
-
-            processModal.classList.remove('hidden');
-            setTimeout(resizeCanvas, 50);
-        });
-
-        document.getElementById('confirmProcessBtn').addEventListener('click', () => {
-            const signatureData = canvas.toDataURL();
+        function getFormattedTime() {
             const now = new Date();
-            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            return now.getFullYear() + "-" + 
+                   String(now.getMonth()+1).padStart(2, '0') + "-" + 
+                   String(now.getDate()).padStart(2, '0') + " " + 
+                   String(now.getHours()).padStart(2, '0') + ":" + 
+                   String(now.getMinutes()).padStart(2, '0');
+        }
 
-            items.forEach(item => {
-                if (item.selected && item.status === 'pending') {
+        function openSignModal() {
+            document.getElementById('signModal').style.display = 'flex';
+            resizeCanvas();
+            clearCanvas();
+            
+            const listDiv = document.getElementById('modalItemsList');
+            listDiv.innerHTML = Array.from(selectedIds).map(id => {
+                const item = data.find(d => d.id === id);
+                return `<div>• ${item.物品名稱} <span class="text-gray-400">(${item.物品編號})</span></div>`;
+            }).join('');
+        }
+
+        function closeSignModal() {
+            document.getElementById('signModal').style.display = 'none';
+        }
+
+        function confirmDisposal() {
+            const dataUrl = canvas.toDataURL();
+            const currentTime = getFormattedTime();
+            selectedIds.forEach(id => {
+                const item = data.find(d => d.id === id);
+                if (item) {
                     item.status = 'completed';
-                    item.signature = signatureData;
-                    item.completedAt = dateStr;
-                    item.selected = false;
+                    item.signImg = dataUrl;
+                    item.date = currentTime;
                 }
             });
-            
-            isViewingSelectedOnly = false;
-            viewSelectedBtn.classList.replace('bg-green-600', 'bg-green-50');
-            viewSelectedBtn.classList.replace('text-white', 'text-green-700');
-            viewSelectedBtnText.innerText = "檢視已選取資料";
+            selectedIds.clear();
+            closeSignModal();
+            renderTable();
+            updateActionUI();
+        }
 
-            closeModals();
+        // --- 備註 Modal 邏輯 ---
+        function openRemarkModal(id) {
+            currentRemarkItemId = id;
+            document.getElementById('remarkModal').style.display = 'flex';
+            
+            ['opt-power', 'opt-cable', 'opt-broken'].forEach(opt => {
+                document.getElementById(opt).classList.remove('selected');
+            });
+            document.getElementById('qty-power').value = 1;
+            document.getElementById('qty-cable').value = 1;
+            document.getElementById('customRemark').value = '';
+        }
+
+        function closeRemarkModal() {
+            document.getElementById('remarkModal').style.display = 'none';
+        }
+
+        function toggleOption(id) {
+            const el = document.getElementById(id);
+            el.classList.toggle('selected');
+        }
+
+        document.getElementById('confirmRemarkBtn').addEventListener('click', () => {
+            if (!currentRemarkItemId) return;
+            const item = data.find(d => d.id === currentRemarkItemId);
+            
+            if(document.getElementById('opt-power').classList.contains('selected')) {
+                item.remarks.push(`缺電源線x${document.getElementById('qty-power').value}`);
+            }
+            if(document.getElementById('opt-cable').classList.contains('selected')) {
+                item.remarks.push(`缺傳輸線x${document.getElementById('qty-cable').value}`);
+            }
+            if(document.getElementById('opt-broken').classList.contains('selected')) {
+                item.remarks.push('設備損毀');
+            }
+            
+            const customText = document.getElementById('customRemark').value.trim();
+            if (customText) item.remarks.push(customText);
+
+            closeRemarkModal();
             renderTable();
         });
 
-        // 修正與密碼
-        const revisePassword = document.getElementById('revisePassword');
-        const passwordError = document.getElementById('passwordError');
-
-        batchReviseBtn.addEventListener('click', () => {
-            revisePassword.value = '';
-            passwordError.classList.add('hidden');
-            passwordModal.classList.remove('hidden');
-        });
-
-        document.getElementById('submitPasswordBtn').addEventListener('click', () => {
-            if (revisePassword.value === '1234') {
-                items.forEach(item => {
-                    if (item.selected) {
-                        item.status = 'pending';
-                        item.signature = null;
-                        item.completedAt = null;
-                        item.selected = false;
-                    }
-                });
-                
-                isViewingSelectedOnly = false;
-                viewSelectedBtn.classList.replace('bg-green-600', 'bg-green-50');
-                viewSelectedBtn.classList.replace('text-white', 'text-green-700');
-                viewSelectedBtnText.innerText = "檢視已選取資料";
-                
-                closeModals();
+        function removeRemark(itemId, remarkIndex) {
+            const item = data.find(d => d.id === itemId);
+            if (item && item.remarks) {
+                item.remarks.splice(remarkIndex, 1);
                 renderTable();
-            } else {
-                passwordError.classList.remove('hidden');
             }
-        });
+        }
 
-        // --- 9. 真實 Excel 匯入/匯出與歷史紀錄 ---
-        const excelInput = document.getElementById('excelInput');
-        
-        // 匯入 Excel
-        document.getElementById('importExcelBtn').addEventListener('click', () => excelInput.click());
-        excelInput.addEventListener('change', (e) => {
+        // --- Excel 匯入 / 匯出 ---
+        function importExcel(e) {
             const file = e.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
-            reader.onload = (evt) => {
-                try {
-                    const data = new Uint8Array(evt.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-                    // 將 Excel 欄位對應到系統陣列
-                    let newId = items.length > 0 ? Math.max(...items.map(i => i.id)) + 1 : 1;
-                    const importedItems = jsonData.map(row => ({
-                        id: newId++,
-                        name: row['物品名稱'] || '未知物品',
-                        code: row['物品編號.1'] || row['物品編號'] || '無編號',
-                        dept: row['保管單位'] || '未指定',
-                        orderNum: row['報廢單號'] || '無單號',
-                        custodian: row['保管人'] || '未指定',
-                        location: row['存置地點'] || '未指定',
-                        status: 'pending',
-                        selected: false,
-                        signature: null,
-                        remarks: [],
-                        completedAt: null
-                    }));
-
-                    // 疊加至現有資料庫 (或可改為覆蓋 items = importedItems)
-                    items = [...items, ...importedItems];
-                    
-                    // 動態更新處室下拉選單
-                    const uniqueDepts = [...new Set(items.map(i => i.dept))];
-                    deptFilter.innerHTML = '<option value="all">全部處室</option>' + 
-                                           uniqueDepts.map(d => `<option value="${d}">${d}</option>`).join('');
-
-                    renderTable();
-                    alert(`成功匯入 ${importedItems.length} 筆資料！`);
-                } catch (error) {
-                    alert('讀取 Excel 失敗，請確認檔案格式是否正確。');
-                }
-                excelInput.value = ''; // 清空 input 允許重複匯入同個檔
+            reader.onload = function(e) {
+                const dataObj = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(dataObj, {type: 'array'});
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet);
+                
+                data = json.map((row, index) => ({
+                    id: index + 100, // 避免 ID 衝突
+                    報廢單號: row['報廢單號'] || '',
+                    物品編號: row['物品編號.1'] || row['物品編號'] || '',
+                    物品名稱: row['物品名稱'] || '',
+                    保管單位: row['保管單位'] || '',
+                    保管人: row['保管人'] || '',
+                    存置地點: row['存置地點'] || '',
+                    status: 'pending',
+                    signImg: '',
+                    date: '',
+                    remarks: []
+                }));
+                
+                selectedIds.clear();
+                updateActionUI();
+                renderTable();
+                alert(`✅ 成功匯入 ${data.length} 筆真實資料！`);
+                toggleMenu();
             };
             reader.readAsArrayBuffer(file);
-        });
+        }
 
-        // 匯出 Excel
-        document.getElementById('exportExcelBtn').addEventListener('click', () => {
-            if (items.length === 0) {
-                alert('目前沒有資料可匯出！');
+        function exportExcel() {
+            const completedData = data.filter(d => d.status === 'completed').map(d => ({
+                "報廢單號": d.報廢單號,
+                "物品編號": d.物品編號,
+                "物品名稱": d.物品名稱,
+                "保管單位": d.保管單位,
+                "保管人": d.保管人,
+                "存置地點": d.存置地點,
+                "處理狀態": "完成報廢",
+                "報廢時間": d.date,
+                "備註事項": d.remarks.join(", ")
+            }));
+
+            if (completedData.length === 0) {
+                alert("目前沒有已完成報廢的資料可匯出！");
                 return;
             }
 
-            const exportData = items.map(item => ({
-                '報廢單號': item.orderNum,
-                '物品編號': item.code,
-                '物品名稱': item.name,
-                '保管單位': item.dept,
-                '保管人': item.custodian,
-                '存置地點': item.location,
-                '處理狀態': item.status === 'completed' ? '完成報廢' : '待處理',
-                '報廢時間': item.completedAt || '',
-                '備註事項': item.remarks.join('，')
-            }));
-
-            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const worksheet = XLSX.utils.json_to_sheet(completedData);
             const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "報廢清單");
+            XLSX.utils.book_append_sheet(workbook, worksheet, "已報廢清單");
+            XLSX.writeFile(workbook, "報廢完成清單匯出.xlsx");
+            toggleMenu();
+        }
+
+        // --- 報廢紀錄查詢 ---
+        function showRecordModal() {
+            toggleMenu();
+            document.getElementById('recordModal').style.display = 'flex';
+            const tbody = document.getElementById('recordTableBody');
+            const completed = data.filter(d => d.status === 'completed');
             
-            // 產生檔案並下載
-            XLSX.writeFile(workbook, `報廢清單_${new Date().toISOString().slice(0,10)}.xlsx`);
-        });
+            tbody.innerHTML = completed.length ? completed.map(d => `
+                <tr class="hover:bg-gray-50">
+                    <td class="p-3 text-gray-600">${d.date}</td>
+                    <td class="p-3 font-mono">${d.報廢單號}</td>
+                    <td class="p-3">${d.物品名稱}<br><span class="text-xs text-gray-400">${d.物品編號}</span></td>
+                    <td class="p-3">${d.保管人}</td>
+                </tr>
+            `).join('') : `<tr><td colspan="4" class="p-6 text-center text-gray-500">尚無已完成報廢的紀錄</td></tr>`;
+        }
 
-        // 查詢紀錄
-        document.getElementById('viewHistoryBtn').addEventListener('click', () => {
-            const completedItems = items.filter(i => i.status === 'completed')
-                                        .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)); // 依時間倒序
+        function closeRecordModal() {
+            document.getElementById('recordModal').style.display = 'none';
+        }
 
-            const historyList = document.getElementById('historyList');
-            if (completedItems.length === 0) {
-                historyList.innerHTML = `<li class="p-6 text-center text-gray-500">目前尚無任何報廢紀錄</li>`;
-            } else {
-                historyList.innerHTML = completedItems.map(i => `
-                    <li class="p-4 hover:bg-gray-50 flex items-center justify-between">
-                        <div>
-                            <div class="font-bold text-gray-800">${i.name} <span class="text-sm font-normal text-gray-500">(${i.code})</span></div>
-                            <div class="text-xs text-gray-500 mt-1">經手人: ${i.custodian} | 處室: ${i.dept} | 單號: ${i.orderNum}</div>
-                        </div>
-                        <div class="text-right">
-                            <span class="inline-flex px-2 py-1 rounded-full text-[10px] font-medium bg-green-100 text-green-800 mb-1">完成報廢</span>
-                            <div class="text-xs text-gray-500 font-mono">${i.completedAt}</div>
-                        </div>
-                    </li>
-                `).join('');
-            }
-            historyModal.classList.remove('hidden');
-        });
+        // 初始化
+        setTimeout(renderTable, 100);
 
-        // 初始渲染
-        renderTable();
     </script>
 </body>
 </html>
