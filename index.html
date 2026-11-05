@@ -4,32 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>資訊物品點交系統</title>
-    <!-- 拒絕搜尋引擎收錄 -->
     <meta name="robots" content="noindex, nofollow">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- 引入 SheetJS 處理 Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-    <!-- 引入相機掃描套件 -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; margin: 0; }
-        
-        #lockScreen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 9999; color: white;
-        }
+        #lockScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; color: white; }
         .app-content { display: none; }
-        
         #signatureCanvas { border: 2px dashed #cbd5e1; border-radius: 8px; width: 100%; height: 200px; touch-action: none; background: #fff; }
         .remark-tag { display: inline-flex; align-items: center; background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 999px; font-size: 13px; margin: 2px; cursor: pointer; transition: 0.2s; }
         .remark-tag:hover { background: #fee2e2; color: #ef4444; }
-        
         .remark-option { border: 2px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
         .remark-option.selected { border-color: #3b82f6; background-color: #eff6ff; }
         .number-input { width: 60px; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center; }
-        
         #scanner-container { width: 100%; max-width: 400px; margin: 0 auto; }
     </style>
 </head>
@@ -44,9 +33,8 @@
         <p id="passwordError" class="text-red-400 mt-4 hidden">密碼錯誤，請重新輸入</p>
     </div>
 
-    <!-- 系統主體 (預設隱藏) -->
+    <!-- 系統主體 -->
     <div id="mainApp" class="app-content min-h-screen">
-        <!-- 頂部導覽列 -->
         <header class="bg-white shadow-sm px-4 md:px-6 py-4 flex justify-between items-center sticky top-0 z-10">
             <div>
                 <h1 class="text-lg md:text-xl font-bold text-gray-800 tracking-wide">資訊物品點交系統</h1>
@@ -75,7 +63,6 @@
         </header>
 
         <main class="p-4 md:p-6 max-w-7xl mx-auto">
-            
             <!-- NFC 控制區 -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div class="flex items-center gap-4 w-full md:w-auto">
@@ -87,7 +74,6 @@
                         <p class="text-xs md:text-sm text-gray-500">請啟動並感應卡片，卡號將綁定至後續報廢項目。</p>
                     </div>
                 </div>
-                
                 <div class="flex items-center gap-2 w-full md:w-auto justify-end">
                     <div class="bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
                         <span class="text-[10px] md:text-xs text-gray-500 block">目前讀取卡號</span>
@@ -117,13 +103,12 @@
                             </button>
                         </div>
                     </div>
-                    <!-- 處室/單位 篩選列 -->
                     <div class="flex flex-col md:flex-row gap-2 w-full">
                         <select id="deptFilter" onchange="updateSubDeptFilter()" class="border border-gray-300 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 bg-white font-bold text-gray-700 flex-1 md:flex-none md:w-48">
-                            <option value="">選擇處室單位</option>
+                            <option value="">🏢 所有處室單位</option>
                         </select>
                         <select id="subDeptFilter" onchange="renderTable()" class="hidden border border-gray-300 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 text-gray-600 flex-1">
-                            <option value="">所有組/課/細項</option>
+                            <option value="">📁 所有組/課/細項</option>
                         </select>
                     </div>
                 </div>
@@ -142,16 +127,14 @@
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-sm border-b">
                                 <th class="p-4 w-12 text-center">選取</th>
-                                <th class="p-4 whitespace-nowrap">物品 / 編號</th>
-                                <th class="p-4 whitespace-nowrap">處室 / 單號</th>
+                                <th class="p-4 whitespace-nowrap">物品 / 編號 (G欄)</th>
+                                <th class="p-4 whitespace-nowrap">處室 / 單號 (M欄)</th>
                                 <th class="p-4 whitespace-nowrap">保管人 / 地點</th>
                                 <th class="p-4 whitespace-nowrap w-40">狀態 / NFC卡號</th>
                                 <th class="p-4 whitespace-nowrap">備註 / 簽名</th>
                             </tr>
                         </thead>
-                        <tbody id="tableBody" class="divide-y divide-gray-100 text-sm">
-                            <!-- JS 動態產生 -->
-                        </tbody>
+                        <tbody id="tableBody" class="divide-y divide-gray-100 text-sm"></tbody>
                     </table>
                 </div>
             </div>
@@ -249,23 +232,21 @@
     <script>
         lucide.createIcons();
         const APP_PASSWORD = "8888";
-        const AUTH_EXPIRY_MS = 3 * 60 * 60 * 1000; // 3 小時免登入時效
+        const AUTH_EXPIRY_MS = 3 * 60 * 60 * 1000;
 
         let data = [];
         let importVersion = "";
         let currentNfcCard = "";
         let selectedIds = new Set();
-        let uniqueDepts = {}; // 儲存 { "人力資源處": ["人力資源處XX中心", ...] }
-
+        let uniqueDepts = {};
         let currentRemarkItemId = null;
         let viewOnlySelected = false;
         let html5QrcodeScanner = null;
 
-        // --- 登入驗證 (3小時免登) ---
+        // --- 登入驗證 ---
         window.onload = () => {
             const authExpiry = localStorage.getItem('authExpiry');
             if (authExpiry && Date.now() < parseInt(authExpiry)) {
-                // 還在有效期限內，直接進入系統
                 document.getElementById('lockScreen').style.display = 'none';
                 document.getElementById('mainApp').style.display = 'block';
                 loadData();
@@ -275,7 +256,6 @@
         function checkPassword() {
             const input = document.getElementById('passwordInput').value;
             if(input === APP_PASSWORD) {
-                // 儲存 3 小時時效
                 localStorage.setItem('authExpiry', Date.now() + AUTH_EXPIRY_MS);
                 document.getElementById('lockScreen').style.display = 'none';
                 document.getElementById('mainApp').style.display = 'block';
@@ -285,7 +265,7 @@
             }
         }
 
-        // --- LocalStorage 本機儲存邏輯 ---
+        // --- 本機儲存 ---
         function saveData() {
             try {
                 localStorage.setItem('inventoryData', JSON.stringify(data));
@@ -299,8 +279,7 @@
                 data = JSON.parse(stored);
                 importVersion = localStorage.getItem('importVersion') || "";
                 if(importVersion) document.getElementById('versionDisplay').textContent = "資料版本: " + importVersion;
-                buildDeptFilters(); // 建立下拉選單
-                renderTable();
+                buildDeptFilters(); renderTable();
             } else {
                 document.getElementById('versionDisplay').textContent = "無暫存資料，請匯入 Excel";
                 renderTable();
@@ -318,26 +297,20 @@
             }
         }
 
-        // --- 處室過濾器邏輯 ---
+        // --- 下拉選單 ---
         function buildDeptFilters() {
             uniqueDepts = {};
             data.forEach(item => {
                 if(!item.保管單位) return;
                 const fullDept = item.保管單位;
-                // 用正則表達式抓取「處、廠、中心、室」作為主分類
                 const match = fullDept.match(/^.*?(處|廠|中心|室)/);
                 const mainDept = match ? match[0] : "其他單位";
-
                 if (!uniqueDepts[mainDept]) uniqueDepts[mainDept] = new Set();
                 uniqueDepts[mainDept].add(fullDept);
             });
-
             const deptSelect = document.getElementById('deptFilter');
             deptSelect.innerHTML = '<option value="">🏢 所有處室單位</option>';
-            
-            Object.keys(uniqueDepts).sort().forEach(dept => {
-                deptSelect.innerHTML += `<option value="${dept}">${dept}</option>`;
-            });
+            Object.keys(uniqueDepts).sort().forEach(dept => deptSelect.innerHTML += `<option value="${dept}">${dept}</option>`);
             updateSubDeptFilter();
         }
 
@@ -345,11 +318,8 @@
             const dept = document.getElementById('deptFilter').value;
             const subSelect = document.getElementById('subDeptFilter');
             subSelect.innerHTML = '<option value="">📁 所有組/課/細項</option>';
-            
             if (dept && uniqueDepts[dept]) {
-                Array.from(uniqueDepts[dept]).sort().forEach(sub => {
-                    subSelect.innerHTML += `<option value="${sub}">${sub}</option>`;
-                });
+                Array.from(uniqueDepts[dept]).sort().forEach(sub => subSelect.innerHTML += `<option value="${sub}">${sub}</option>`);
                 subSelect.classList.remove('hidden');
             } else {
                 subSelect.classList.add('hidden');
@@ -357,36 +327,33 @@
             renderTable();
         }
 
-        // --- Modal 控制邏輯 ---
+        // --- Modal ---
         function openModal(id) { const el = document.getElementById(id); el.classList.remove('hidden'); el.classList.add('flex'); }
         function closeModal(id) { 
             const el = document.getElementById(id); el.classList.remove('flex'); el.classList.add('hidden');
             if(id === 'scannerModal' && html5QrcodeScanner) { html5QrcodeScanner.stop().catch(err => console.log(err)); }
         }
 
-        // --- NFC 邏輯 ---
+        // --- NFC ---
         const startNfcBtn = document.getElementById('startNfcBtn');
         const nfcDisplay = document.getElementById('nfc-card-id');
-
         startNfcBtn.addEventListener('click', async () => {
             if (!('NDEFReader' in window)) { alert("此瀏覽器不支援 Web NFC。"); return; }
             try {
                 startNfcBtn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>掃描中';
-                const ndef = new NDEFReader();
-                await ndef.scan();
+                const ndef = new NDEFReader(); await ndef.scan();
                 ndef.onreading = event => {
                     const serialNumber = event.serialNumber;
                     if(serialNumber) {
                         currentNfcCard = serialNumber; nfcDisplay.textContent = serialNumber; nfcDisplay.classList.add('text-green-600');
-                        startNfcBtn.innerHTML = '<i data-lucide="wifi" class="w-4 h-4"></i>重新感應';
-                        alert("✅ 卡號讀取成功！");
+                        startNfcBtn.innerHTML = '<i data-lucide="wifi" class="w-4 h-4"></i>重新感應'; alert("✅ 卡號讀取成功！");
                     }
                 };
-                ndef.onreadingerror = () => { alert("❌ 卡片感應不良或格式不支援。"); startNfcBtn.innerHTML = '<i data-lucide="wifi" class="w-4 h-4"></i>啟動'; };
+                ndef.onreadingerror = () => { alert("❌ 卡片感應不良。"); startNfcBtn.innerHTML = '<i data-lucide="wifi" class="w-4 h-4"></i>啟動'; };
             } catch (error) { alert("NFC 權限未開啟。"); startNfcBtn.innerHTML = '<i data-lucide="wifi" class="w-4 h-4"></i>啟動'; }
         });
 
-        // --- 相機掃描邏輯 ---
+        // --- 相機掃描 ---
         function startCameraScanner() {
             openModal('scannerModal');
             html5QrcodeScanner = new Html5Qrcode("scanner-container");
@@ -401,7 +368,7 @@
             ).catch(() => { alert("無法啟動相機！"); closeModal('scannerModal'); });
         }
 
-        // --- 表格與資料邏輯 ---
+        // --- 互動邏輯 ---
         function toggleMenu() { document.getElementById('settingsMenu').classList.toggle('hidden'); }
         document.getElementById('searchInput').addEventListener('input', renderTable);
         
@@ -452,15 +419,8 @@
 
             let filteredData = data.filter(item => {
                 if (viewOnlySelected && !selectedIds.has(item.id)) return false;
-                
-                // 處室過濾邏輯
-                if (selectedSubDept) {
-                    if (item.保管單位 !== selectedSubDept) return false;
-                } else if (selectedMainDept) {
-                    if (!item.保管單位.startsWith(selectedMainDept)) return false;
-                }
-
-                // 搜尋框邏輯
+                if (selectedSubDept) { if (item.保管單位 !== selectedSubDept) return false; } 
+                else if (selectedMainDept) { if (!item.保管單位.startsWith(selectedMainDept)) return false; }
                 return item.物品編號.toLowerCase().includes(search) || item.物品名稱.toLowerCase().includes(search);
             });
 
@@ -495,13 +455,10 @@
             lucide.createIcons();
         }
 
-        // --- 畫布與簽名邏輯 ---
-        const canvas = document.getElementById('signatureCanvas');
-        const ctx = canvas.getContext('2d');
-        let isDrawing = false;
+        // --- 畫布 ---
+        const canvas = document.getElementById('signatureCanvas'); const ctx = canvas.getContext('2d'); let isDrawing = false;
         function resizeCanvas() { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
-        function startDrawing(e) { isDrawing = true; draw(e); }
-        function stopDrawing() { isDrawing = false; ctx.beginPath(); }
+        function startDrawing(e) { isDrawing = true; draw(e); } function stopDrawing() { isDrawing = false; ctx.beginPath(); }
         function draw(e) {
             if (!isDrawing) return; e.preventDefault(); const rect = canvas.getBoundingClientRect();
             const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left; const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
@@ -510,7 +467,6 @@
         canvas.addEventListener('mousedown', startDrawing); canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseup', stopDrawing); canvas.addEventListener('mouseout', stopDrawing);
         canvas.addEventListener('touchstart', startDrawing, {passive: false}); canvas.addEventListener('touchmove', draw, {passive: false}); canvas.addEventListener('touchend', stopDrawing);
         function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
-
         function getFormattedTime() { const now = new Date(); return now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2, '0') + "-" + String(now.getDate()).padStart(2, '0') + " " + String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0'); }
 
         function openSignModal() {
@@ -525,7 +481,7 @@
             selectedIds.clear(); closeModal('signModal'); saveData(); renderTable(); updateActionUI();
         }
 
-        // --- 備註 Modal 邏輯 ---
+        // --- 備註 ---
         function openRemarkModalHandler(id) {
             currentRemarkItemId = id; openModal('remarkModal');
             ['opt-power', 'opt-cable', 'opt-broken'].forEach(opt => document.getElementById(opt).classList.remove('selected'));
@@ -542,11 +498,21 @@
         });
         function removeRemark(itemId, remarkIndex) { const item = data.find(d => d.id === itemId); if (item && item.remarks) { item.remarks.splice(remarkIndex, 1); saveData(); renderTable(); } }
 
-        // --- Excel 匯入 (精準抓取欄位) ---
-        // 防止 Excel 欄位有看不到的空白或換行符號，建立一個輔助抓取函式
-        function getExcelVal(row, keywords) {
-            const key = Object.keys(row).find(k => keywords.some(kw => k.includes(kw)));
-            return key ? String(row[key]).trim() : '';
+        // --- Excel 匯入 (殺手鐧抓取格式) ---
+        function getExcelVal(row, keywords, isId = false) {
+            const allKeys = Object.keys(row);
+            
+            // 殺手鐧模式：完全不看標題名稱，直接掃描這整列的「所有內容」
+            // 只要找到格式長得像「數字-數字」(例如 62006003-00987)，就直接抓出來當作完整編號！
+            if (isId) {
+                const exactIdKey = allKeys.find(k => /\d{6,}-\d{4,}/.test(String(row[k]).trim()));
+                if (exactIdKey) return String(row[exactIdKey]).trim();
+            }
+
+            // 正常的關鍵字抓取模式 (如果有多個同名欄位，取最後一個/最右邊那個)
+            const matchedKeys = allKeys.filter(k => keywords.some(kw => k.includes(kw)));
+            if (matchedKeys.length === 0) return '';
+            return String(row[matchedKeys[matchedKeys.length - 1]]).trim();
         }
 
         function importExcel(e) {
@@ -558,26 +524,21 @@
                 data = json.map((row, index) => ({
                     id: index + 100, 
                     報廢單號: getExcelVal(row, ['報廢單號']),
-                    物品編號: getExcelVal(row, ['物品編號']),   // 精準抓取 G 欄[cite: 11]
+                    物品編號: getExcelVal(row, ['物品編號'], true), // 啟動殺手鐧模式
                     物品名稱: getExcelVal(row, ['物品名稱']),
-                    保管單位: getExcelVal(row, ['保管單位']),   // 精準抓取 M 欄[cite: 11]
+                    保管單位: getExcelVal(row, ['保管單位']),
                     保管人: getExcelVal(row, ['保管人']),
                     存置地點: getExcelVal(row, ['存置地點']),
                     status: 'pending', signImg: '', date: '', nfcCard: '', remarks: []
                 }));
                 
-                importVersion = getFormattedTime() + " 匯入";
-                document.getElementById('versionDisplay').textContent = "資料版本: " + importVersion;
-                selectedIds.clear();
-                
-                saveData(); buildDeptFilters(); updateActionUI(); renderTable();
-                alert(`✅ 成功匯入 ${data.length} 筆資料並已暫存於本機！`);
-                toggleMenu();
+                importVersion = getFormattedTime() + " 匯入"; document.getElementById('versionDisplay').textContent = "資料版本: " + importVersion;
+                selectedIds.clear(); saveData(); buildDeptFilters(); updateActionUI(); renderTable();
+                alert(`✅ 成功匯入 ${data.length} 筆資料！`); toggleMenu();
             };
             reader.readAsArrayBuffer(file); document.getElementById('excelUpload').value = "";
         }
 
-        // --- 匯出功能 ---
         function exportExcel() {
             const completedData = data.filter(d => d.status === 'completed').map(d => ({
                 "報廢單號": d.報廢單號, "物品編號": d.物品編號, "物品名稱": d.物品名稱, "保管單位": d.保管單位,
@@ -588,7 +549,6 @@
             XLSX.writeFile(workbook, `報廢完成清單_${getFormattedTime().replace(/[: ]/g, "")}.xlsx`); toggleMenu();
         }
 
-        // --- 報廢紀錄查詢 ---
         function showRecordModal() {
             toggleMenu(); openModal('recordModal'); const tbody = document.getElementById('recordTableBody');
             const completed = data.filter(d => d.status === 'completed');
