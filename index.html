@@ -92,14 +92,57 @@
                 </div>
             </div>
 
+            <!-- 進度統計三格卡片 (點擊可快速切換狀態篩選) -->
+            <div class="grid grid-cols-3 gap-3 md:gap-4 mb-4">
+                <div onclick="quickFilterStatus('all')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-5 flex items-center justify-between cursor-pointer hover:border-blue-300 transition">
+                    <div>
+                        <p class="text-xs md:text-sm text-gray-500 font-medium mb-1">物品總數</p>
+                        <p class="text-2xl md:text-3xl font-bold text-gray-800"><span id="statTotal">0</span> <span class="text-xs md:text-sm font-normal text-gray-400">筆</span></p>
+                    </div>
+                    <div class="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="package" class="w-5 h-5 text-emerald-700"></i>
+                    </div>
+                </div>
+                <div onclick="quickFilterStatus('pending')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-5 flex items-center justify-between cursor-pointer hover:border-amber-300 transition">
+                    <div>
+                        <p class="text-xs md:text-sm text-gray-500 font-medium mb-1">待處理</p>
+                        <p class="text-2xl md:text-3xl font-bold text-gray-800"><span id="statPending">0</span> <span class="text-xs md:text-sm font-normal text-gray-400">筆</span></p>
+                    </div>
+                    <div class="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="clock" class="w-5 h-5 text-emerald-700"></i>
+                    </div>
+                </div>
+                <div onclick="quickFilterStatus('completed')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-5 flex items-center justify-between cursor-pointer hover:border-green-300 transition">
+                    <div>
+                        <p class="text-xs md:text-sm text-gray-500 font-medium mb-1">完成報廢</p>
+                        <p class="text-2xl md:text-3xl font-bold text-emerald-700"><span id="statCompleted">0</span> <span class="text-xs md:text-sm font-normal text-gray-400">筆</span></p>
+                    </div>
+                    <div class="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="check" class="w-5 h-5 text-emerald-700"></i>
+                    </div>
+                </div>
+            </div>
+
             <!-- 清單區塊 -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="p-4 md:p-6 border-b border-gray-100 bg-gray-50 flex flex-col gap-4">
                     <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                        <h3 class="font-bold text-gray-800 flex items-center whitespace-nowrap">
-                            <i data-lucide="list" class="w-5 h-5 mr-2 text-gray-400"></i>
-                            待處理物品清單
-                        </h3>
+                        <!-- 待處理物品清單 + 旁邊的即時進度表 -->
+                        <div class="flex flex-wrap items-center gap-3">
+                            <h3 class="font-bold text-gray-800 flex items-center whitespace-nowrap">
+                                <i data-lucide="list" class="w-5 h-5 mr-2 text-gray-400"></i>
+                                待處理物品清單
+                            </h3>
+                            <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-gray-200 shadow-sm">
+                                <span class="text-xs text-gray-500 font-bold whitespace-nowrap">進度</span>
+                                <div class="w-20 md:w-28 h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                                    <div id="progressBar" class="h-full bg-emerald-600 transition-all duration-300" style="width: 0%"></div>
+                                </div>
+                                <span id="progressText" class="text-xs font-mono font-bold text-emerald-700 whitespace-nowrap">0/0 (0%)</span>
+                            </div>
+                        </div>
+
+                        <!-- 搜尋框 + 掃條碼 + 清除鍵 -->
                         <div class="flex gap-2 w-full md:w-auto">
                             <div class="relative flex-1 md:flex-none">
                                 <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-gray-400"></i>
@@ -107,6 +150,9 @@
                             </div>
                             <button onclick="startCameraScanner()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition whitespace-nowrap flex-shrink-0">
                                 <i data-lucide="camera" class="w-4 h-4"></i> 掃條碼
+                            </button>
+                            <button onclick="clearSearchInput()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition whitespace-nowrap flex-shrink-0" title="清除左方搜尋內容">
+                                <i data-lucide="x-circle" class="w-4 h-4"></i> 清除
                             </button>
                         </div>
                     </div>
@@ -121,14 +167,22 @@
                     </div>
                 </div>
 
-                <!-- 狀態列與篩選下拉選單 (紅色標記區域整合) -->
+                <!-- 狀態列與篩選下拉選單 -->
                 <div class="p-4 bg-white border-b border-gray-100 flex flex-wrap gap-3 items-center">
                     <span class="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-bold whitespace-nowrap">已選 <span id="selectedCount">0</span> 筆</span>
                     <button id="viewSelectedBtn" class="border border-green-200 text-green-700 bg-green-50 px-3 py-2 rounded-lg text-sm font-bold hover:bg-green-100 transition flex items-center gap-1 whitespace-nowrap">
                         <i data-lucide="check-square" class="w-4 h-4"></i> 檢視已選
                     </button>
                     
-                    <!-- 新增：已報廢 / 未報廢 狀態下拉選單 -->
+                    <button onclick="showOrderModal()" class="border border-indigo-200 text-indigo-700 bg-indigo-50 px-3 py-2 rounded-lg text-sm font-bold hover:bg-indigo-100 transition flex items-center gap-1 whitespace-nowrap">
+                        <i data-lucide="file-text" class="w-4 h-4"></i> 報廢清單
+                    </button>
+                    <span id="orderChip" class="hidden bg-indigo-100 text-indigo-800 px-3 py-2 rounded-lg text-sm font-bold whitespace-nowrap">
+                        單號：<span id="orderChipText"></span>
+                        <button onclick="clearOrderFilter()" class="ml-2 text-indigo-500 hover:text-red-500" title="取消單號篩選">✕</button>
+                    </span>
+
+                    <!-- 已報廢 / 未報廢 狀態下拉選單 -->
                     <select id="statusFilter" onchange="renderTable()" class="border border-gray-300 bg-gray-50 text-gray-700 px-3 py-2 rounded-lg text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
                         <option value="all">📋 全部狀態</option>
                         <option value="pending">⏳ 未報廢 (待處理)</option>
@@ -225,6 +279,18 @@
         </div>
     </div>
 
+    <!-- 報廢清單彈窗（依 Excel A 欄「報廢單號」分組） -->
+    <div id="orderModal" class="hidden fixed inset-0 bg-black/60 items-center justify-center z-50">
+        <div class="bg-white rounded-2xl p-4 md:p-6 w-[95%] max-w-3xl shadow-2xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="text-xl font-bold text-gray-800">報廢清單 <span id="orderSummary" class="text-sm font-normal text-gray-500"></span></h2>
+                <button onclick="closeModal('orderModal')" class="text-gray-400 hover:text-gray-700"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <input type="text" id="orderSearch" oninput="renderOrderList()" placeholder="搜尋報廢單號、物品名稱、編號或保管人..." class="border rounded-lg text-sm px-3 py-2 mb-3 w-full focus:ring-2 focus:ring-blue-500 outline-none">
+            <div id="orderListBody" class="overflow-y-auto flex-1 space-y-3"></div>
+        </div>
+    </div>
+
     <!-- 紀錄查詢彈窗 -->
     <div id="recordModal" class="hidden fixed inset-0 bg-black/60 items-center justify-center z-50">
         <div class="bg-white rounded-2xl p-4 md:p-6 w-[95%] max-w-4xl shadow-2xl max-h-[90vh] flex flex-col">
@@ -265,6 +331,7 @@
         let viewOnlySelected = false;
         let html5QrcodeScanner = null;
         let nfcScanning = false;
+        let orderFilterVal = ''; // 主清單的「報廢單號」篩選
         let rawHeaders = []; // 原始 Excel 標題列（匯出時帶回所有原欄位）
 
         // --- 登入驗證 (3小時免登) ---
@@ -336,7 +403,7 @@
                 localStorage.removeItem('inventoryData');
                 localStorage.removeItem('importVersion');
                 localStorage.removeItem('signatures'); signatures = {};
-                localStorage.removeItem('rawHeaders'); rawHeaders = [];
+                localStorage.removeItem('rawHeaders'); rawHeaders = []; clearOrderFilter(true);
                 data = []; importVersion = ""; selectedIds.clear();
                 document.getElementById('versionDisplay').textContent = "無暫存資料，請匯入 Excel";
                 toggleMenu(); buildDeptFilters(); renderTable(); updateActionUI();
@@ -350,7 +417,6 @@
             data.forEach(item => {
                 if(!item.保管單位) return;
                 const fullDept = item.保管單位;
-                // 先抓第一個「處、廠、中心、室」當作一級處室（例如：人力資源處、電機處）
                 const match = fullDept.match(/^.*?(處|廠|中心|室)/);
                 const mainDept = match ? match[0] : fullDept;
                 if (!uniqueDepts[mainDept]) uniqueDepts[mainDept] = new Set();
@@ -370,7 +436,6 @@
             subSelect.innerHTML = '<option value="">📁 所有組/課/中心細項</option>';
             if (dept && uniqueDepts[dept]) {
                 const subList = Array.from(uniqueDepts[dept]).sort();
-                // 只有當該處室底下有更細的組/課（或多種子單位）時才顯示細項選單
                 if (subList.length > 1 || (subList.length === 1 && subList[0] !== dept)) {
                     subList.forEach(sub => {
                         const shortName = sub.startsWith(dept) && sub !== dept ? `${sub} (${sub.slice(dept.length)})` : sub;
@@ -435,14 +500,21 @@
             }
         });
 
-        // --- 相機掃描 ---
+        // --- 相機掃描與清除搜尋框 ---
+        function clearSearchInput() {
+            const input = document.getElementById('searchInput');
+            input.value = '';
+            renderTable();
+            input.focus();
+        }
+
         function startCameraScanner() {
             openModal('scannerModal');
             let scanHandled = false;
             html5QrcodeScanner = new Html5Qrcode("scanner-container");
             html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 150 } }, 
                 (decodedText) => {
-                    if (scanHandled) return; // 避免同一次掃描連續觸發多次
+                    if (scanHandled) return;
                     scanHandled = true;
                     const cleanCode = decodedText.trim();
                     document.getElementById('searchInput').value = cleanCode;
@@ -463,6 +535,38 @@
         function toggleMenu() { document.getElementById('settingsMenu').classList.toggle('hidden'); }
         document.getElementById('searchInput').addEventListener('input', renderTable);
         
+        function quickFilterStatus(statusVal) {
+            document.getElementById('statusFilter').value = statusVal;
+            renderTable();
+        }
+
+        // 更新三格進度統計卡片與標題旁進度條（依據目前選定的處室與單號範圍計算）
+        function updateProgressStats() {
+            const selectedMainDept = document.getElementById('deptFilter').value;
+            const selectedSubDept = document.getElementById('subDeptFilter').value;
+
+            const scopeData = data.filter(item => {
+                if (orderFilterVal && (item.報廢單號 || '(無單號)') !== orderFilterVal) return false;
+                if (selectedSubDept) {
+                    if (item.保管單位 !== selectedSubDept) return false;
+                } else if (selectedMainDept) {
+                    if (!item.保管單位.startsWith(selectedMainDept)) return false;
+                }
+                return true;
+            });
+
+            const total = scopeData.length;
+            const completed = scopeData.filter(d => d.status === 'completed').length;
+            const pending = total - completed;
+            const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statPending').textContent = pending;
+            document.getElementById('statCompleted').textContent = completed;
+            document.getElementById('progressBar').style.width = pct + '%';
+            document.getElementById('progressText').textContent = `${completed}/${total} (${pct}%)`;
+        }
+
         document.getElementById('viewSelectedBtn').addEventListener('click', () => {
             viewOnlySelected = !viewOnlySelected;
             const btn = document.getElementById('viewSelectedBtn');
@@ -541,6 +645,8 @@
         }
 
         function renderTable() {
+            updateProgressStats();
+
             const tbody = document.getElementById('tableBody');
             const search = document.getElementById('searchInput').value.toLowerCase().trim();
             const selectedMainDept = document.getElementById('deptFilter').value;
@@ -554,17 +660,14 @@
             }
 
             let filteredData = data.filter(item => {
-                // 1. 檢視已選過濾
                 if (viewOnlySelected && !selectedIds.has(item.id)) return false;
-                // 2. 已報廢 / 未報廢 下拉選單過濾
                 if (statusFilterVal !== 'all' && item.status !== statusFilterVal) return false;
-                // 3. 處室與細項過濾
+                if (orderFilterVal && (item.報廢單號 || '(無單號)') !== orderFilterVal) return false;
                 if (selectedSubDept) {
                     if (item.保管單位 !== selectedSubDept) return false;
                 } else if (selectedMainDept) {
                     if (!item.保管單位.startsWith(selectedMainDept)) return false;
                 }
-                // 4. 關鍵字搜尋 (編號、名稱、保管人、單號)
                 if (!search) return true;
                 return item.物品編號.toLowerCase().includes(search) ||
                        item.物品名稱.toLowerCase().includes(search) ||
@@ -652,7 +755,7 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.restore(); hasSigned = false;
         }
-        // 輸出簽名：白底 PNG（原本 JPEG 會把透明背景變成黑色，簽名會整張變黑）
+        // 輸出簽名：白底 PNG
         function getSignatureImage() {
             const W = 480, H = 160;
             const out = document.createElement('canvas'); out.width = W; out.height = H;
@@ -717,10 +820,10 @@
                 item.nfcCard = currentNfcCard;
             });
             selectedIds.clear(); closeModal('signModal'); saveData();
-            document.getElementById('searchInput').value = ''; // 清掉掃條碼帶入的編號
-            if (viewOnlySelected) document.getElementById('viewSelectedBtn').click(); // 關閉「檢視已選」，避免清單變空
+            document.getElementById('searchInput').value = '';
+            if (viewOnlySelected) document.getElementById('viewSelectedBtn').click();
             renderTable(); updateActionUI();
-            resetNfcCard(); // 每批儲存後清空卡號，下一批須重新感應
+            resetNfcCard();
         }
 
         // --- 備註 ---
@@ -745,7 +848,7 @@
             if (item && item.remarks) { item.remarks.splice(remarkIndex, 1); saveData(); renderTable(); }
         }
 
-        // --- Excel 匯入 (精準鎖定 G欄、M欄、O欄、Q欄，絕不誤抓代碼與員編) ---
+        // --- Excel 匯入 ---
         function cleanStr(val) {
             if (val === undefined || val === null) return '';
             const s = String(val).trim();
@@ -754,7 +857,7 @@
 
         function normRaw(v, header) {
             if (v instanceof Date) {
-                const d = new Date(v.getTime() + 12 * 3600 * 1000); // 補償 SheetJS 日期的時區誤差
+                const d = new Date(v.getTime() + 12 * 3600 * 1000);
                 return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0');
             }
             if (typeof v === 'number' && /日期/.test(header) && v > 20000 && v < 80000) {
@@ -776,37 +879,31 @@
                 try {
                 const workbook = XLSX.read(new Uint8Array(evt.target.result), {type: 'array', cellDates: true});
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                // 使用 header: 1 直接取得二維陣列，精準對應 Excel 的 A~T 欄位座標
                 const rows = XLSX.utils.sheet_to_json(sheet, {header: 1, defval: ''});
                 if (rows.length < 2) { alert("Excel 檔案無資料！"); return; }
 
-                // 尋找標題列 (第 0 列)
                 const headers = rows[0].map(h => cleanStr(h));
-                
-                // 精確定位各欄位索引 (優先找精準名稱，若無則對準固定欄位座標 G=6, M=12, O=14, Q=16)
                 const idxOrderNo = headers.findIndex(h => h === '報廢單號') !== -1 ? headers.findIndex(h => h === '報廢單號') : 0;
-                // G欄是第2個「物品編號」(索引6)
                 let idxItemId = 6;
                 headers.forEach((h, i) => { if (h === '物品編號') idxItemId = i; });
                 
                 const idxItemName = headers.findIndex(h => h === '物品名稱') !== -1 ? headers.findIndex(h => h === '物品名稱') : 7;
-                const idxDept = headers.findIndex(h => h === '保管單位') !== -1 ? headers.findIndex(h => h === '保管單位') : 12; // M欄 (排除「保管單位代碼」)
-                const idxKeeper = headers.findIndex(h => h === '保管人') !== -1 ? headers.findIndex(h => h === '保管人') : 14; // O欄 (排除「保管人員編」)
-                const idxLocation = headers.findIndex(h => h === '存置地點') !== -1 ? headers.findIndex(h => h === '存置地點') : 16; // Q欄 (排除「存置地點代碼」)
+                const idxDept = headers.findIndex(h => h === '保管單位') !== -1 ? headers.findIndex(h => h === '保管單位') : 12;
+                const idxKeeper = headers.findIndex(h => h === '保管人') !== -1 ? headers.findIndex(h => h === '保管人') : 14;
+                const idxLocation = headers.findIndex(h => h === '存置地點') !== -1 ? headers.findIndex(h => h === '存置地點') : 16;
 
                 const parsedData = [];
                 for (let i = 1; i < rows.length; i++) {
                     const r = rows[i];
                     if (!r || r.length === 0) continue;
                     
-                    // 取得 G 欄完整物品編號，若該格沒有 '-'，則嘗試掃描整列找帶有 '-' 的編號
                     let itemId = cleanStr(r[idxItemId]);
                     if (!itemId.includes('-')) {
                         const found = r.find(cell => /\d{5,}-\d{3,}/.test(cleanStr(cell)));
                         if (found) itemId = cleanStr(found);
                     }
                     const itemName = cleanStr(r[idxItemName]);
-                    if (!itemId && !itemName) continue; // 略過空白列
+                    if (!itemId && !itemName) continue;
 
                     parsedData.push({
                         id: i + 100,
@@ -821,7 +918,7 @@
                     });
                 }
                 
-                data = parsedData; signatures = {}; rawHeaders = headers.slice();
+                data = parsedData; signatures = {}; rawHeaders = headers.slice(); clearOrderFilter(true);
                 importVersion = getFormattedTime() + " 匯入";
                 document.getElementById('versionDisplay').textContent = "資料版本: " + importVersion;
                 selectedIds.clear();
@@ -859,7 +956,6 @@
             toggleMenu();
             const { headers, rows, signCol } = buildExportTable(done);
 
-            // ExcelJS 載入失敗（例如離線且沒有本機檔）時的備援：不含簽名圖
             if (typeof ExcelJS === 'undefined') {
                 const aoa = [headers].concat(rows.map((r, i) => { const c = r.slice(); c[signCol] = getSign(done[i]) ? "（已簽名，圖檔需 ExcelJS 才能匯出）" : "（無簽名）"; return c; }));
                 const wbx = XLSX.utils.book_new();
@@ -876,7 +972,6 @@
                 head.font = { bold: true };
                 head.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
                 head.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
-                // 新增欄位的標題換個底色，方便辨識
                 for (let c = signCol - 4; c <= signCol + 1; c++) head.getCell(c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } };
 
                 done.forEach((d, i) => {
@@ -892,7 +987,6 @@
                     }
                 });
 
-                // 欄寬依內容自動調整（上下限 8~40）
                 headers.forEach((h, ci) => {
                     let w = String(h).length * 2;
                     rows.forEach(r => { const len = String(r[ci] === undefined || r[ci] === null ? '' : r[ci]).length * 1.6; if (len > w) w = len; });
@@ -910,6 +1004,78 @@
                 console.error(err);
                 alert("匯出失敗：" + err.message);
             }
+        }
+
+        // --- 報廢清單：依 A 欄報廢單號分組 ---
+        function getOrderGroups() {
+            const map = new Map();
+            data.forEach(it => {
+                const key = it.報廢單號 || '(無單號)';
+                if (!map.has(key)) map.set(key, []);
+                map.get(key).push(it);
+            });
+            return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+        }
+
+        function showOrderModal() {
+            if (data.length === 0) { alert("尚無資料，請先匯入 Excel。"); return; }
+            document.getElementById('orderSearch').value = '';
+            openModal('orderModal');
+            renderOrderList();
+        }
+
+        function renderOrderList() {
+            const kw = document.getElementById('orderSearch').value.toLowerCase().trim();
+            const body = document.getElementById('orderListBody');
+            let groups = getOrderGroups();
+            document.getElementById('orderSummary').textContent = `（共 ${groups.length} 張單）`;
+            if (kw) {
+                groups = groups.filter(([key, items]) =>
+                    key.toLowerCase().includes(kw) ||
+                    items.some(it => (it.物品名稱 + ' ' + it.物品編號 + ' ' + it.保管人).toLowerCase().includes(kw)));
+            }
+            if (groups.length === 0) { body.innerHTML = '<div class="p-6 text-center text-gray-400">沒有符合的報廢單</div>'; return; }
+            body.innerHTML = groups.map(([key, items]) => {
+                const done = items.filter(i => i.status === 'completed').length;
+                const allDone = done === items.length;
+                const depts = Array.from(new Set(items.map(i => getMainDept(i.保管單位)))).join('、');
+                const rows = items.map(i => `
+                    <tr class="border-t">
+                        <td class="p-2"><div class="font-bold text-gray-800">${esc(i.物品名稱)}</div><div class="text-xs text-gray-500 font-mono">${esc(i.物品編號)}</div></td>
+                        <td class="p-2"><div>${esc(i.保管單位)}</div><div class="text-xs text-gray-500">${esc(i.保管人)} ${esc(i.存置地點)}</div></td>
+                        <td class="p-2 whitespace-nowrap">${i.status === 'completed'
+                            ? `<span class="text-green-700 font-bold text-xs">✅ 已報廢</span><div class="text-[10px] text-gray-400">${esc(i.date)}</div>`
+                            : '<span class="text-amber-700 font-bold text-xs">⏳ 待處理</span>'}</td>
+                    </tr>`).join('');
+                return `
+                    <details class="border rounded-xl bg-white" ${kw ? 'open' : ''}>
+                        <summary class="p-3 cursor-pointer flex flex-wrap items-center gap-2">
+                            <span class="font-mono font-bold text-gray-800">${esc(key)}</span>
+                            <span class="text-xs text-gray-500">${esc(depts)}</span>
+                            <span class="ml-auto px-2 py-1 rounded-full text-xs font-bold ${allDone ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">${done}/${items.length} 已完成</span>
+                        </summary>
+                        <div class="px-3 pb-3">
+                            <div class="overflow-x-auto"><table class="w-full text-left text-sm min-w-[480px]"><tbody>${rows}</tbody></table></div>
+                            <button data-order="${esc(key)}" onclick="applyOrderFilter(this.dataset.order)" class="mt-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold">在主清單檢視此單</button>
+                        </div>
+                    </details>`;
+            }).join('');
+        }
+
+        function applyOrderFilter(key) {
+            orderFilterVal = key;
+            updateOrderChip();
+            closeModal('orderModal');
+            renderTable();
+        }
+        function clearOrderFilter(silent) {
+            orderFilterVal = '';
+            updateOrderChip();
+            if (!silent) renderTable();
+        }
+        function updateOrderChip() {
+            document.getElementById('orderChip').classList.toggle('hidden', !orderFilterVal);
+            document.getElementById('orderChipText').textContent = orderFilterVal;
         }
 
         function showRecordModal() {
