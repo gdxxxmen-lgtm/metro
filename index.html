@@ -448,8 +448,7 @@
                     document.getElementById('searchInput').value = cleanCode;
                     const matchedItem = data.find(d => d.物品編號.toLowerCase() === cleanCode.toLowerCase() || d.物品編號.includes(cleanCode));
                     if(matchedItem) {
-                        selectedIds.add(matchedItem.id);
-                        if (navigator.vibrate) navigator.vibrate(150);
+                        if (trySelect(matchedItem.id) && navigator.vibrate) navigator.vibrate(150);
                     } else {
                         alert(`找不到編號為 ${cleanCode} 的物品`);
                     }
@@ -477,9 +476,35 @@
             renderTable();
         });
 
+        // 取得一級處室（與上方處室下拉選單同一套規則）
+        function getMainDept(fullDept) {
+            if (!fullDept) return '(未填保管單位)';
+            const m = fullDept.match(/^.*?(處|廠|中心|室)/);
+            return m ? m[0] : fullDept;
+        }
+
+        // 嘗試選取：已選項目屬於不同處室時拒絕，回傳是否成功
+        function trySelect(id) {
+            if (selectedIds.has(id)) return true;
+            const item = data.find(d => d.id === id);
+            if (!item) return false;
+            if (selectedIds.size > 0) {
+                const firstId = selectedIds.values().next().value;
+                const first = data.find(d => d.id === firstId);
+                const curDept = first ? getMainDept(first.保管單位) : '';
+                const newDept = getMainDept(item.保管單位);
+                if (first && curDept !== newDept) {
+                    alert(`⚠️ 不同處室無法一起報廢！\n\n目前已選：${curDept}\n此物品屬於：${newDept}\n\n請先完成或取消已選項目，再處理其他處室。`);
+                    return false;
+                }
+            }
+            selectedIds.add(id);
+            return true;
+        }
+
         function toggleSelect(id) {
             if (selectedIds.has(id)) selectedIds.delete(id);
-            else selectedIds.add(id);
+            else trySelect(id);
             updateActionUI();
         }
 
@@ -574,7 +599,7 @@
                 };
 
                 tr.innerHTML = `
-                    <td class="p-4 text-center"><input type="checkbox" id="chk-${item.id}" class="w-5 h-5 text-blue-600 rounded cursor-pointer" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleSelect(${item.id})"></td>
+                    <td class="p-4 text-center"><input type="checkbox" id="chk-${item.id}" class="w-5 h-5 text-blue-600 rounded cursor-pointer" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleSelect(${item.id}); this.checked = selectedIds.has(${item.id})"></td>
                     <td class="p-4 whitespace-nowrap"><div class="font-bold text-gray-800">${esc(item.物品名稱)}</div><div class="text-xs text-gray-500 font-mono">${esc(item.物品編號)}</div></td>
                     <td class="p-4 whitespace-nowrap"><div class="text-gray-800 font-medium">${esc(item.保管單位)}</div><div class="text-xs text-gray-500 font-mono">${esc(item.報廢單號 || '無單號')}</div></td>
                     <td class="p-4 whitespace-nowrap"><div class="font-bold text-gray-800">${esc(item.保管人)}</div><div class="text-xs text-gray-500">${esc(item.存置地點)}</div></td>
@@ -651,11 +676,16 @@
             });
             if (pendingIds.length === 0) return;
             const skipped = selectedIds.size - pendingIds.length;
+            const depts = new Set(pendingIds.map(id => getMainDept(data.find(d => d.id === id).保管單位)));
+            if (depts.size > 1) {
+                alert("已選項目包含不同處室，無法一起報廢，請重新選取。");
+                return;
+            }
             openModal('signModal');
             resizeCanvas();
             clearCanvas();
             document.getElementById('modalNfcDisplay').textContent = currentNfcCard ? `綁定卡號: ${currentNfcCard}` : '(無 NFC 綁定)';
-            document.getElementById('modalItemsList').innerHTML = pendingIds.map(id => {
+            document.getElementById('modalItemsList').innerHTML = `<div class="font-bold text-gray-700 mb-1">處室：${esc(Array.from(depts)[0])}</div>` + pendingIds.map(id => {
                 const item = data.find(d => d.id === id);
                 return `<div>• ${esc(item.物品名稱)} <span class="text-gray-400 font-mono">(${esc(item.物品編號)})</span></div>`;
             }).join('') + (skipped ? `<div class="text-amber-600 mt-1">※ 已略過 ${skipped} 筆「已完成」的項目</div>` : '');
@@ -686,7 +716,10 @@
                 item.date = currentTime;
                 item.nfcCard = currentNfcCard;
             });
-            selectedIds.clear(); closeModal('signModal'); saveData(); renderTable(); updateActionUI();
+            selectedIds.clear(); closeModal('signModal'); saveData();
+            document.getElementById('searchInput').value = ''; // 清掉掃條碼帶入的編號
+            if (viewOnlySelected) document.getElementById('viewSelectedBtn').click(); // 關閉「檢視已選」，避免清單變空
+            renderTable(); updateActionUI();
             resetNfcCard(); // 每批儲存後清空卡號，下一批須重新感應
         }
 
