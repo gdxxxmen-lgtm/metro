@@ -16,7 +16,7 @@
     <script>window.Html5Qrcode || document.write('<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"><\/script>')</script>
     <script src="libs/exceljs.min.js"></script>
     <script>window.ExcelJS || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"><\/script>')</script>
-    <!-- 新增：PDF 產出套件 -->
+    <!-- PDF 產出套件 -->
     <script src="libs/html2pdf.bundle.min.js"></script>
     <script>window.html2pdf || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"><\/script>')</script>
     <style>
@@ -30,9 +30,9 @@
         .remark-option.selected { border-color: #3b82f6; background-color: #eff6ff; }
         .number-input { width: 60px; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center; }
         #scanner-container { width: 100%; max-width: 400px; margin: 0 auto; }
-        /* 隱藏的 PDF 渲染容器，確保固定寬度 A4 比例不跑版 */
+        /* 【修正切邊 Bug】：加入 box-sizing 確保 padding 不會撐破 800px */
         #pdfWrapper { position: absolute; left: -9999px; top: -9999px; width: 800px; }
-        #pdfContent { width: 800px; padding: 40px; background: white; color: black; font-family: sans-serif; }
+        #pdfContent { width: 800px; padding: 30px; box-sizing: border-box; background: white; color: black; font-family: sans-serif; }
     </style>
 </head>
 <body>
@@ -214,7 +214,7 @@
         </main>
     </div>
 
-    <!-- 各類模組化彈窗 (相機、簽名、備註、清單) 保留原樣 -->
+    <!-- 各類模組化彈窗 -->
     <div id="scannerModal" class="hidden fixed inset-0 bg-black/60 items-center justify-center z-50">
         <div class="bg-white rounded-2xl p-6 w-[90%] max-w-md shadow-2xl">
             <div class="flex justify-between items-center mb-4">
@@ -331,7 +331,7 @@
         </div>
     </div>
 
-    <!-- 隱藏的 PDF 渲染版型容器 (不會顯示在畫面上，專供拍照截圖成 PDF 使用) -->
+    <!-- 隱藏的 PDF 渲染版型容器 -->
     <div id="pdfWrapper">
         <div id="pdfContent"></div>
     </div>
@@ -423,8 +423,7 @@
             }
         }
 
-        // --- 其他清單控制、掃描、NFC邏輯（保留前版設定） ---
-        // (此處省略詳細，直接延續上方代碼架構...)
+        // --- 處室與細項智慧下拉選單 ---
         function buildDeptFilters() {
             uniqueDepts = {};
             data.forEach(item => {
@@ -463,6 +462,7 @@
             if(id === 'scannerModal' && html5QrcodeScanner) { html5QrcodeScanner.stop().then(() => html5QrcodeScanner.clear()).catch(err => console.log(err)); }
         }
 
+        // --- NFC 邏輯 ---
         const startNfcBtn = document.getElementById('startNfcBtn');
         const nfcDisplay = document.getElementById('nfc-card-id');
         startNfcBtn.addEventListener('click', async () => {
@@ -623,7 +623,7 @@
             selectedIds.clear(); closeModal('signModal'); saveData(); document.getElementById('searchInput').value = ''; if (viewOnlySelected) document.getElementById('viewSelectedBtn').click(); renderTable(); updateActionUI(); resetNfcCard();
         }
 
-        // --- PDF 匯出與分享 (Web Share API) ---
+        // --- PDF 匯出與分享 (【修正切邊 Bug】：加入 windowWidth 設定) ---
         function toggleAllRecords(checked) {
             const chks = document.querySelectorAll('.record-chk');
             chks.forEach(chk => chk.checked = checked);
@@ -636,14 +636,12 @@
 
             const selectedRecords = data.filter(d => ids.includes(d.id));
             const groups = {};
-            // 依據批次簽名ID分組，同一批次的會在同一張表
             selectedRecords.forEach(r => {
                 const key = r.signId || 'no_sign';
                 if (!groups[key]) groups[key] = [];
                 groups[key].push(r);
             });
 
-            // 建立供 html2pdf 擷取的 HTML 內容
             let html = `<h1 style="text-align:center; font-size:26px; font-weight:bold; margin-bottom:5px; color:#1f2937;">資訊物品報廢點交證明單</h1>`;
             html += `<p style="text-align:right; font-size:12px; color:#6b7280; margin-bottom:20px;">資料匯出時間：${getFormattedTime()}</p>`;
 
@@ -696,7 +694,6 @@
             const container = document.getElementById('pdfContent');
             container.innerHTML = html;
             
-            // UI 狀態切換
             const btnDownload = document.getElementById('btn-pdf-download');
             const btnShare = document.getElementById('btn-pdf-share');
             const oTextD = btnDownload.innerHTML; const oTextS = btnShare.innerHTML;
@@ -705,11 +702,13 @@
             lucide.createIcons();
 
             const fileName = `報廢點交證明單_${getFormattedTime().replace(/[-: ]/g, "")}.pdf`;
+            
+            // 【修正切邊 Bug】：加入 windowWidth 確保套件知道畫布實際寬度
             const opt = {
-                margin:       [10, 10, 10, 10], // 上下左右邊界 (mm)
+                margin:       [10, 10, 10, 10], 
                 filename:     fileName,
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
+                html2canvas:  { scale: 2, useCORS: true, windowWidth: 800 }, 
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
@@ -721,7 +720,6 @@
                 html2pdf().set(opt).from(container).output('blob').then(blob => {
                     btnShare.innerHTML = oTextS; lucide.createIcons();
                     const file = new File([blob], fileName, { type: 'application/pdf' });
-                    // 呼叫平板原生分享功能 (Web Share API)
                     if (navigator.canShare && navigator.canShare({ files: [file] })) {
                         navigator.share({
                             files: [file],
@@ -729,7 +727,6 @@
                             text: '您好，附件為最新產生的報廢點交證明單，請查收。'
                         }).catch(err => console.log('分享取消', err));
                     } else {
-                        // 不支援時的降級處理 (轉為一般下載)
                         alert("⚠️ 您的設備瀏覽器不支援直接寄送附件檔案，將改為自動為您下載 PDF。");
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
