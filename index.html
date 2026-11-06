@@ -60,7 +60,7 @@
     <div id="mainApp" class="app-content min-h-screen">
         <header class="bg-white shadow-sm px-4 md:px-6 py-4 flex justify-between items-center sticky top-0 z-10">
             <div>
-                <h1 class="text-lg md:text-xl font-bold text-gray-800 tracking-wide">資訊物品點交系統 <span class="text-xs font-normal text-gray-400">(v2.7)</span></h1>
+                <h1 class="text-lg md:text-xl font-bold text-gray-800 tracking-wide">資訊物品點交系統 <span class="text-xs font-normal text-gray-400">(v2.8)</span></h1>
                 <p id="versionDisplay" class="text-xs font-bold text-blue-600 mt-1">無暫存資料，請匯入 Excel</p>
             </div>
             <div class="relative">
@@ -98,7 +98,7 @@
                     </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-2.5 w-full lg:w-auto justify-end">
-                    <!-- 紅圈位置：點交人員按鈕（辨識完直接在此顯示名稱） -->
+                    <!-- 點交人員按鈕（辨識完直接在此顯示名稱） -->
                     <div id="handoverPersonBtnBox" onclick="startNameOCR()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl cursor-pointer transition flex items-center gap-2.5 shadow-md" title="點擊開啟相機辨識或輸入點交人員">
                         <i id="handoverPersonIcon" data-lucide="scan-face" class="w-5 h-5 flex-shrink-0"></i>
                         <div class="leading-tight">
@@ -524,7 +524,7 @@
             }
         }
 
-        // --- 紅圈位置：點交人員按鈕與名稱顯示切換 ---
+        // --- 點交人員按鈕與名稱顯示切換 ---
         function setHandoverPerson(name) {
             currentHandoverPerson = String(name || '').trim();
             localStorage.setItem('lastHandoverPerson', currentHandoverPerson);
@@ -534,7 +534,6 @@
             const clrBtn = document.getElementById('clearPersonBtn');
 
             if (currentHandoverPerson) {
-                // 已辨識/設定姓名：在同一個紅圈框直接醒目顯示點交人員名稱
                 box.className = "bg-purple-50 hover:bg-purple-100 text-purple-900 px-4 py-2 rounded-xl border-2 border-purple-400 cursor-pointer transition flex items-center gap-2.5 shadow-sm";
                 label.className = "text-[10px] text-purple-600 font-bold block";
                 label.textContent = "點交人員 (點擊重設)";
@@ -542,7 +541,6 @@
                 disp.textContent = currentHandoverPerson;
                 clrBtn.classList.remove('hidden');
             } else {
-                // 未設定：呈現「點交人員」相機辨識按鈕樣式
                 box.className = "bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl cursor-pointer transition flex items-center gap-2.5 shadow-md";
                 label.className = "text-[10px] text-purple-200 font-bold block";
                 label.textContent = "點交人員";
@@ -882,7 +880,6 @@
             applyOcrName(val);
         }
 
-        // 套用大名並直接顯示在上方紅圈「點交人員」位置
         function applyOcrName(name) {
             setHandoverPerson(name);
             let updated = 0;
@@ -953,11 +950,26 @@
             document.getElementById('progressBar').style.width = pct + '%'; document.getElementById('progressText').textContent = `${completed}/${total} (${pct}%)`;
         }
 
-        document.getElementById('viewSelectedBtn').addEventListener('click', () => {
-            viewOnlySelected = !viewOnlySelected;
+        // 切換「檢視已選」按鈕狀態
+        function setViewSelectedState(active) {
+            viewOnlySelected = active;
             const btn = document.getElementById('viewSelectedBtn');
-            if (viewOnlySelected) { btn.classList.replace('bg-green-50', 'bg-green-600'); btn.classList.replace('text-green-700', 'text-white'); } 
-            else { btn.classList.replace('bg-green-600', 'bg-green-50'); btn.classList.replace('text-white', 'text-green-700'); }
+            if (!btn) return;
+            if (viewOnlySelected) {
+                btn.classList.replace('bg-green-50', 'bg-green-600');
+                btn.classList.replace('text-green-700', 'text-white');
+            } else {
+                btn.classList.replace('bg-green-600', 'bg-green-50');
+                btn.classList.replace('text-white', 'text-green-700');
+            }
+        }
+
+        document.getElementById('viewSelectedBtn').addEventListener('click', () => {
+            if (!viewOnlySelected && selectedIds.size === 0) {
+                alert("目前尚未勾選任何物品！請先在清單中勾選或掃描條碼。");
+                return;
+            }
+            setViewSelectedState(!viewOnlySelected);
             renderTable();
         });
 
@@ -972,7 +984,19 @@
             }
             selectedIds.add(id); return true;
         }
-        function toggleSelect(id) { if (selectedIds.has(id)) selectedIds.delete(id); else trySelect(id); updateActionUI(); }
+        function toggleSelect(id) {
+            if (selectedIds.has(id)) {
+                selectedIds.delete(id);
+                // 若在「檢視已選」模式下把最後一筆取消勾選，自動切回一般模式並重繪清單
+                if (viewOnlySelected && selectedIds.size === 0) {
+                    setViewSelectedState(false);
+                }
+            } else {
+                trySelect(id);
+            }
+            updateActionUI();
+            if (viewOnlySelected) renderTable();
+        }
         function updateActionUI() {
             document.getElementById('selectedCount').textContent = selectedIds.size;
             const btn = document.getElementById('actionBtn');
@@ -987,7 +1011,7 @@
         function revertStatus() {
             if (prompt("請輸入管理密碼退回：") === ADMIN_PASSWORD) {
                 selectedIds.forEach(id => { const item = data.find(d => d.id === id); if(item) { item.status = 'pending'; item.signImg = ''; item.signId = ''; item.date = ''; item.nfcCard = ''; item.handoverPerson = ''; } });
-                selectedIds.clear(); cleanupSignatures(); saveData(); buildOrderNoSelect(); renderTable(); updateActionUI();
+                selectedIds.clear(); setViewSelectedState(false); cleanupSignatures(); saveData(); buildOrderNoSelect(); renderTable(); updateActionUI();
             }
         }
 
@@ -1001,8 +1025,12 @@
             tbody.innerHTML = '';
 
             if(data.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-400">尚無資料，請點擊右上角齒輪匯入 Excel</td></tr>`; return; }
+            
             let filteredData = data.filter(item => {
-                if (viewOnlySelected && !selectedIds.has(item.id)) return false;
+                // 【關鍵修正】：一旦啟動「檢視已選」，無條件顯示剛才所有已勾選的項目，不受搜尋框殘留文字、單號或處室下拉選單阻擋！
+                if (viewOnlySelected) {
+                    return selectedIds.has(item.id);
+                }
                 if (statusFilterVal !== 'all' && item.status !== statusFilterVal) return false;
                 if (orderFilterVal && (item.報廢單號 || '(無單號)') !== orderFilterVal) return false;
                 if (!orderFilterVal && orderSuffixFilter) {
@@ -1111,7 +1139,7 @@
                 item.nfcCard = currentNfcCard;
                 item.handoverPerson = finalPerson || item.handoverPerson || '';
             });
-            selectedIds.clear(); closeModal('signModal'); saveData(); buildOrderNoSelect(); document.getElementById('searchInput').value = ''; if (viewOnlySelected) document.getElementById('viewSelectedBtn').click(); renderTable(); updateActionUI(); resetNfcCard();
+            selectedIds.clear(); setViewSelectedState(false); closeModal('signModal'); saveData(); buildOrderNoSelect(); document.getElementById('searchInput').value = ''; renderTable(); updateActionUI(); resetNfcCard();
         }
 
         // --- A4 橫版 (Landscape 297x210 mm) PDF 引擎 ---
@@ -1412,7 +1440,7 @@
                     parsedData.push({ id: i + 100, 報廢單號: cleanStr(r[idxOrderNo]), 物品編號: itemId, 物品名稱: itemName, 保管單位: cleanStr(r[idxDept]), 保管人: cleanStr(r[idxKeeper]), 存置地點: cleanStr(r[idxLocation]), raw: headers.map((h, ci) => normRaw(r[ci], h)), status: 'pending', signImg: '', date: '', nfcCard: '', handoverPerson: '', remarks: [] });
                 }
                 data = parsedData; signatures = {}; rawHeaders = headers.slice(); clearOrderFilter(true);
-                importVersion = getFormattedTime() + " 匯入"; document.getElementById('versionDisplay').textContent = "資料版本: " + importVersion; selectedIds.clear();
+                importVersion = getFormattedTime() + " 匯入"; document.getElementById('versionDisplay').textContent = "資料版本: " + importVersion; selectedIds.clear(); setViewSelectedState(false);
                 saveData(); buildDeptFilters(); buildOrderNoSelect(); updateActionUI(); renderTable(); alert(`✅ 匯入 ${data.length} 筆資料！`); toggleMenu();
                 } catch (err) { alert("匯入失敗"); }
             };
