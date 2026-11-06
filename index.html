@@ -19,7 +19,7 @@
     <!-- PDF 產出套件 (含 jsPDF 核心) -->
     <script src="libs/html2pdf.bundle.min.js"></script>
     <script>window.html2pdf || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"><\/script>')</script>
-    <!-- 新增：Tesseract.js 繁體中文 OCR 姓名辨識套件 -->
+    <!-- Tesseract.js 繁體中文 OCR 姓名辨識套件 -->
     <script src="libs/tesseract.min.js"></script>
     <script>window.Tesseract || document.write('<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"><\/script>')</script>
     <style>
@@ -31,7 +31,7 @@
         #signatureCanvas { border: 2px dashed #cbd5e1; border-radius: 8px; width: 100%; height: 100%; min-height: 220px; touch-action: none; background: #fff; display: block; }
         @media (orientation: landscape) and (max-height: 650px) {
             #signModalCard { width: 96vw !important; max-width: 96vw !important; height: 94vh !important; max-height: 94vh !important; padding: 10px 16px !important; }
-            #signModalItemsBox { display: none !important; } /* 橫向時自動收合清單，把九成空間讓給白色簽名格 */
+            #signModalItemsBox { display: none !important; }
             #signModalHeader { margin-bottom: 4px !important; }
             #signModalFooterBtn { margin-top: 8px !important; padding-top: 8px !important; padding-bottom: 8px !important; }
         }
@@ -85,24 +85,34 @@
         </header>
 
         <main class="p-4 md:p-6 max-w-7xl mx-auto">
-            <!-- NFC 控制區 -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="flex items-center gap-4 w-full md:w-auto">
+            <!-- NFC 卡片與點交人員登記區 -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 mb-4 flex flex-col lg:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-4 w-full lg:w-auto">
                     <div class="w-12 h-12 rounded-full bg-green-50 flex-shrink-0 flex items-center justify-center">
                         <i data-lucide="nfc" class="w-6 h-6 text-green-600"></i>
                     </div>
                     <div>
-                        <h2 class="text-base md:text-lg font-bold text-gray-800">NFC 卡片登記</h2>
-                        <p class="text-xs md:text-sm text-gray-500">請啟動並感應卡片，卡號將綁定至後續報廢項目。</p>
+                        <h2 class="text-base md:text-lg font-bold text-gray-800">NFC 卡片 ＆ 點交人員登記</h2>
+                        <p class="text-xs md:text-sm text-gray-500">感應卡片或辨識大名後，將自動綁定至後續報廢項目的「卡號」與「點交人員」欄。</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+                <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
+                    <!-- 目前點交人員顯示框 -->
+                    <div onclick="startNameOCR()" class="bg-purple-50 hover:bg-purple-100 px-3 py-2 rounded-lg border border-purple-200 cursor-pointer transition flex items-center gap-2" title="點擊開啟相機辨識或手動輸入點交人員">
+                        <div>
+                            <span class="text-[10px] md:text-xs text-purple-600 font-bold block">目前點交人員 (點擊設定)</span>
+                            <span id="handover-person-display" class="font-bold text-purple-900 text-sm">尚未設定</span>
+                        </div>
+                        <button onclick="clearHandoverPerson(event)" id="clearPersonBtn" class="hidden text-purple-400 hover:text-red-500 text-xs font-bold px-1" title="清除點交人員">✕</button>
+                    </div>
+
+                    <!-- 目前讀取卡號顯示框 -->
                     <div class="bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
                         <span class="text-[10px] md:text-xs text-gray-500 block">目前讀取卡號</span>
                         <span id="nfc-card-id" class="font-mono font-bold text-gray-800 text-sm">尚未讀取</span>
                     </div>
                     <button id="startNfcBtn" class="px-4 py-3 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-bold shadow-md transition flex items-center gap-2 whitespace-nowrap">
-                        <i data-lucide="wifi" class="w-4 h-4"></i>啟動
+                        <i data-lucide="wifi" class="w-4 h-4"></i>啟動 NFC
                     </button>
                 </div>
             </div>
@@ -164,17 +174,17 @@
                             <button onclick="startCameraScanner()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition whitespace-nowrap flex-shrink-0">
                                 <i data-lucide="camera" class="w-4 h-4"></i> 掃條碼
                             </button>
-                            <!-- 新增：相機辨識大名按鈕 -->
-                            <button onclick="startNameOCR()" class="bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition whitespace-nowrap flex-shrink-0" title="拍照辨識保管人姓名">
+                            <!-- 相機辨識大名 (設定點交人員) -->
+                            <button onclick="startNameOCR()" class="bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition whitespace-nowrap flex-shrink-0" title="拍照辨識或設定點交人員大名">
                                 <i data-lucide="scan-face" class="w-4 h-4"></i> 辨識大名
                             </button>
-                            <button onclick="clearSearchInput()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition whitespace-nowrap flex-shrink-0" title="清除搜尋與單號篩選">
+                            <button onclick="clearSearchInput()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition whitespace-nowrap flex-shrink-0" title="清除左方搜尋與單號篩選">
                                 <i data-lucide="x-circle" class="w-4 h-4"></i> 清除
                             </button>
                         </div>
                     </div>
 
-                    <!-- 處室篩選 ＋ 紅色圈選區（A欄報廢單號下拉 & 後3碼快篩） -->
+                    <!-- 處室篩選 ＋ A欄報廢單號下拉 & 後3碼快篩 -->
                     <div class="flex flex-col md:flex-row flex-wrap gap-2 w-full items-stretch md:items-center">
                         <select id="deptFilter" onchange="updateSubDeptFilter()" class="border border-gray-300 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 bg-white font-bold text-gray-700 md:w-52">
                             <option value="">🏢 所有處室單位</option>
@@ -183,7 +193,6 @@
                             <option value="">📁 所有組/課/中心細項</option>
                         </select>
 
-                        <!-- 新增：紅色圈選區 A欄「報廢單號」下拉選單 + 後3碼快速篩選 -->
                         <div class="flex gap-2 flex-1 items-center">
                             <select id="orderNoSelect" onchange="onOrderSelectChange()" class="border border-indigo-300 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-indigo-50/60 font-bold text-indigo-900 flex-1 md:flex-none md:w-64">
                                 <option value="">📄 所有報廢單號 (A欄)</option>
@@ -222,15 +231,17 @@
                 </div>
 
                 <div class="overflow-x-auto w-full">
-                    <table class="w-full text-left border-collapse min-w-[800px]">
+                    <table class="w-full text-left border-collapse min-w-[900px]">
                         <thead>
                             <tr class="bg-gray-50 text-gray-500 text-sm border-b">
                                 <th class="p-4 w-12 text-center">選取</th>
                                 <th class="p-4 whitespace-nowrap">物品 / 編號 (G欄)</th>
                                 <th class="p-4 whitespace-nowrap">處室 (M欄) / 單號 (A欄)</th>
                                 <th class="p-4 whitespace-nowrap">保管人 / 地點</th>
-                                <th class="p-4 whitespace-nowrap w-40">狀態 / NFC卡號</th>
-                                <th class="p-4 whitespace-nowrap">備註 / 簽名</th>
+                                <th class="p-4 whitespace-nowrap w-36">狀態 / NFC卡號</th>
+                                <th class="p-4 whitespace-nowrap">備註</th>
+                                <!-- 新增：備註後面多一格「點交人員 / 簽名」 -->
+                                <th class="p-4 whitespace-nowrap w-44">點交人員 / 簽名</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody" class="divide-y divide-gray-100 text-sm"></tbody>
@@ -252,56 +263,86 @@
         </div>
     </div>
 
-    <!-- 新增：相機大名 OCR 辨識彈窗 -->
-    <div id="ocrModal" class="hidden fixed inset-0 bg-black/70 items-center justify-center z-50">
-        <div class="bg-white rounded-2xl p-5 w-[92%] max-w-md shadow-2xl flex flex-col">
-            <div class="flex justify-between items-center mb-3">
-                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <i data-lucide="scan-face" class="w-5 h-5 text-purple-600"></i> 相機辨識大名 (保管人)
+    <!-- 升級版：相機大名 OCR 辨識彈窗 (設定點交人員) -->
+    <div id="ocrModal" class="hidden fixed inset-0 bg-black/70 items-center justify-center z-50 p-2">
+        <div class="bg-white rounded-2xl p-4 md:p-5 w-[95%] max-w-md shadow-2xl flex flex-col max-h-[94vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-base md:text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="user-check" class="w-5 h-5 text-purple-600"></i> 辨識大名（設定點交人員）
                 </h2>
                 <button onclick="closeModal('ocrModal')" class="text-gray-400 hover:text-gray-700"><i data-lucide="x" class="w-6 h-6"></i></button>
             </div>
-            <!-- 鏡頭預覽與對準框 -->
-            <div class="relative rounded-xl overflow-hidden bg-black aspect-[4/3] flex items-center justify-center">
+
+            <!-- 鏡頭預覽與窄型單行對準框 (排除周邊雜訊干擾) -->
+            <div class="relative rounded-xl overflow-hidden bg-black aspect-[16/10] flex items-center justify-center">
                 <video id="ocrVideo" autoplay playsinline class="w-full h-full object-cover"></video>
                 <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div class="w-3/4 h-2/5 border-2 border-purple-400 rounded-xl shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] flex items-end justify-center pb-1">
-                        <span class="text-[11px] text-purple-200 bg-black/60 px-2 py-0.5 rounded">請將「中文姓名」對準框內</span>
+                    <div class="w-[62%] h-[28%] border-2 border-purple-400 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.55)] flex items-end justify-center pb-0.5">
+                        <span class="text-[10px] text-purple-200 bg-black/70 px-2 py-0.5 rounded">請將「3~4字姓名」放大對準框內</span>
                     </div>
                 </div>
             </div>
-            <div id="ocrStatus" class="text-xs text-center text-gray-500 my-2.5">對準名牌、識別證或表單上的姓名後點擊拍照</div>
-            <!-- 辨識出的候選姓名標籤 -->
-            <div id="ocrCandidates" class="hidden flex-wrap gap-1.5 mb-3 p-2 bg-purple-50 rounded-lg border border-purple-100"></div>
-            <div class="flex gap-2">
-                <button id="ocrSnapBtn" onclick="captureAndRecognizeName()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl shadow transition flex items-center justify-center gap-2">
-                    <i data-lucide="camera" class="w-4 h-4"></i> 拍照辨識姓名
+
+            <!-- 預處理後影像預覽 (方便確認有沒有拍清楚) -->
+            <div id="ocrPreviewBox" class="hidden mt-2 items-center gap-2 bg-gray-50 p-2 rounded-lg border text-xs text-gray-600">
+                <span>擷取畫面：</span>
+                <img id="ocrPreviewImg" class="h-8 border rounded bg-white object-contain" alt="OCR預覽">
+                <span id="ocrRawResult" class="font-mono text-gray-500 truncate flex-1"></span>
+            </div>
+
+            <div id="ocrStatus" class="text-xs text-center text-gray-500 my-2">將識別證或名牌上的姓名對準紫框，或直接在下方輸入/點選</div>
+
+            <!-- 辨識出的候選姓名按鈕區 -->
+            <div id="ocrCandidates" class="hidden flex-wrap gap-1.5 mb-2.5 p-2 bg-purple-50 rounded-lg border border-purple-100"></div>
+
+            <!-- 手動微調確認框 (即使OCR差1個字也能秒改) -->
+            <div class="flex gap-2 mb-3 bg-purple-50/70 p-2.5 rounded-xl border border-purple-200 items-center">
+                <span class="text-xs font-bold text-purple-800 whitespace-nowrap">點交人員：</span>
+                <input type="text" id="ocrManualInput" placeholder="拍照辨識或直接輸入姓名..." class="flex-1 border border-purple-300 rounded-lg px-2.5 py-1.5 text-sm font-bold text-gray-800 outline-none focus:ring-2 focus:ring-purple-500 bg-white">
+                <button onclick="confirmManualOcrName()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap shadow-sm">
+                    確認套用
                 </button>
-                <label class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-4 py-2.5 rounded-xl cursor-pointer flex items-center justify-center gap-1 text-sm whitespace-nowrap">
-                    <i data-lucide="image" class="w-4 h-4"></i> 相簿/近拍
+            </div>
+
+            <!-- 快速選擇目前清單內的保管人 (免打字快速點選) -->
+            <div id="quickKeeperBox" class="mb-3">
+                <p class="text-[11px] font-bold text-gray-500 mb-1">💡 或直接點選目前篩選範圍內的保管人作為點交人員：</p>
+                <div id="quickKeeperList" class="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto p-1"></div>
+            </div>
+
+            <div class="flex gap-2">
+                <button id="ocrSnapBtn" onclick="captureAndRecognizeName()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl shadow transition flex items-center justify-center gap-2 text-sm">
+                    <i data-lucide="camera" class="w-4 h-4"></i> 擷取框內姓名辨識
+                </button>
+                <label class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-3 py-2.5 rounded-xl cursor-pointer flex items-center justify-center gap-1 text-xs whitespace-nowrap">
+                    <i data-lucide="image" class="w-4 h-4"></i> 原生相機近拍
                     <input type="file" accept="image/*" capture="environment" class="hidden" onchange="ocrFromImageFile(event)">
                 </label>
             </div>
         </div>
     </div>
 
-    <!-- 簽名彈窗 (支援手機橫向 90%+ 滿版) -->
+    <!-- 簽名彈窗 (支援手機橫向 90%+ 滿版 + 確認點交人員) -->
     <div id="signModal" class="hidden fixed inset-0 bg-black/70 items-center justify-center z-50 p-2 md:p-4">
         <div id="signModalCard" class="bg-white rounded-2xl p-4 md:p-6 w-[96vw] max-w-4xl h-[88vh] md:h-[85vh] shadow-2xl flex flex-col">
-            <div id="signModalHeader" class="flex justify-between items-center mb-2 flex-shrink-0">
-                <div class="flex items-center gap-3 flex-wrap">
-                    <h2 class="text-lg md:text-xl font-bold text-gray-800">確認報廢與簽名</h2>
-                    <span id="modalNfcDisplay" class="text-xs md:text-sm font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full"></span>
+            <div id="signModalHeader" class="flex justify-between items-center mb-2 flex-shrink-0 gap-2 flex-wrap">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h2 class="text-base md:text-xl font-bold text-gray-800">確認報廢與簽名</h2>
+                    <span id="modalNfcDisplay" class="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full"></span>
+                    <!-- 簽名時可同步檢視/修改點交人員 -->
+                    <div class="flex items-center gap-1 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full">
+                        <span class="text-xs font-bold text-purple-700">👤 點交人員:</span>
+                        <input type="text" id="modalHandoverInput" placeholder="可輸入或留空" class="bg-transparent text-xs font-bold text-purple-900 w-24 outline-none border-b border-purple-300 focus:border-purple-600">
+                    </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <button onclick="clearCanvas()" class="text-red-500 text-sm font-bold hover:underline px-2 py-1 bg-red-50 rounded-lg">清除重簽</button>
+                <div class="flex items-center gap-2">
+                    <button onclick="clearCanvas()" class="text-red-500 text-xs md:text-sm font-bold hover:underline px-2 py-1 bg-red-50 rounded-lg">清除重簽</button>
                     <button onclick="closeModal('signModal')" class="text-gray-400 hover:text-gray-700"><i data-lucide="x" class="w-6 h-6"></i></button>
                 </div>
             </div>
             <div id="signModalItemsBox" class="mb-2 flex-shrink-0">
                 <div id="modalItemsList" class="bg-gray-50 p-2.5 rounded-lg border text-xs md:text-sm max-h-24 overflow-y-auto"></div>
             </div>
-            <!-- 白色簽名格子：自動撐滿剩餘全部高度 (橫向時達九成滿版) -->
             <div class="flex-1 flex flex-col min-h-0 relative">
                 <canvas id="signatureCanvas" class="flex-1 w-full h-full"></canvas>
             </div>
@@ -351,7 +392,7 @@
         </div>
     </div>
 
-    <!-- 紀錄查詢彈窗 (含 PDF 匯出與 Email 分享) -->
+    <!-- 紀錄查詢彈窗 (含「點交人員」欄與 PDF 匯出) -->
     <div id="recordModal" class="hidden fixed inset-0 bg-black/60 items-center justify-center z-50">
         <div class="bg-white rounded-2xl p-4 md:p-6 w-[95%] max-w-5xl shadow-2xl max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-center mb-3">
@@ -374,7 +415,7 @@
             </div>
             
             <div class="overflow-x-auto border rounded-lg flex-1">
-                <table class="w-full text-left text-sm min-w-[700px]">
+                <table class="w-full text-left text-sm min-w-[780px]">
                     <thead class="bg-gray-50 text-gray-500 sticky top-0 shadow-sm z-10">
                         <tr>
                             <th class="p-3 w-10 text-center">選取</th>
@@ -382,7 +423,8 @@
                             <th class="p-3 whitespace-nowrap">單號</th>
                             <th class="p-3 whitespace-nowrap">物品 / 編號</th>
                             <th class="p-3 whitespace-nowrap">保管單位 / 保管人</th>
-                            <th class="p-3 whitespace-nowrap">簽名檔案</th>
+                            <th class="p-3 whitespace-nowrap">備註</th>
+                            <th class="p-3 whitespace-nowrap">點交人員 / 簽名</th>
                         </tr>
                     </thead>
                     <tbody id="recordTableBody" class="divide-y divide-gray-100 bg-white"></tbody>
@@ -397,10 +439,14 @@
         const ADMIN_PASSWORD = "1234";
         const AUTH_EXPIRY_MS = 3 * 60 * 60 * 1000;
 
+        // 台灣常見百大姓氏字庫，用於協助 OCR 過濾雜訊並精準抓出 2~4 字人名
+        const COMMON_SURNAMES = "陳林黃張李王吳劉蔡楊許鄭謝郭洪曾邱廖賴周徐蘇葉莊呂江何蕭羅高簡朱鍾施游詹沈彭胡余盧潘顏梁趙柯翁魏方孫戴范宋鄧杜侯曹薛傅丁溫紀蔣歐藍連唐馬董石卓程姚康馮古姜湯汪白田涂鄒巫尤鐘龔嚴韓袁金童陸夏柳凃邵";
+
         let data = [];
         let signatures = {}; 
         let importVersion = "";
         let currentNfcCard = "";
+        let currentHandoverPerson = ""; // 目前辨識/設定的「點交人員」
         let selectedIds = new Set();
         let uniqueDepts = {};
         let currentRemarkItemId = null;
@@ -408,8 +454,8 @@
         let html5QrcodeScanner = null;
         let ocrVideoStream = null;
         let nfcScanning = false;
-        let orderFilterVal = '';      // 完整單號精確篩選
-        let orderSuffixFilter = '';   // 單號後3碼模糊篩選
+        let orderFilterVal = '';
+        let orderSuffixFilter = '';
         let rawHeaders = []; 
 
         // --- 初始化與登入 ---
@@ -482,6 +528,40 @@
             }
         }
 
+        // --- 點交人員設定與更新顯示 ---
+        function setHandoverPerson(name) {
+            currentHandoverPerson = String(name || '').trim();
+            const disp = document.getElementById('handover-person-display');
+            const clrBtn = document.getElementById('clearPersonBtn');
+            if (currentHandoverPerson) {
+                disp.textContent = currentHandoverPerson;
+                disp.classList.add('text-emerald-700');
+                clrBtn.classList.remove('hidden');
+            } else {
+                disp.textContent = '尚未設定';
+                disp.classList.remove('text-emerald-700');
+                clrBtn.classList.add('hidden');
+            }
+        }
+
+        function clearHandoverPerson(e) {
+            if (e) e.stopPropagation();
+            setHandoverPerson('');
+        }
+
+        // 單筆記錄直接點擊修改點交人員
+        function editItemHandoverPerson(id, e) {
+            if (e) e.stopPropagation();
+            const item = data.find(d => d.id === id);
+            if (!item) return;
+            const newName = prompt("請輸入或修改此筆物品的「點交人員」姓名：", item.handoverPerson || currentHandoverPerson || item.保管人 || "");
+            if (newName !== null) {
+                item.handoverPerson = newName.trim();
+                saveData();
+                renderTable();
+            }
+        }
+
         // --- 處室與細項智慧下拉選單 ---
         function buildDeptFilters() {
             uniqueDepts = {};
@@ -512,11 +592,11 @@
                     subSelect.classList.remove('hidden');
                 } else { subSelect.classList.add('hidden'); }
             } else { subSelect.classList.add('hidden'); }
-            buildOrderNoSelect(); // 連動更新該處室的報廢單號
+            buildOrderNoSelect();
             renderTable();
         }
 
-        // --- 新增：A欄「報廢單號」下拉選單與後3碼快速過濾 ---
+        // --- A欄「報廢單號」下拉選單與後3碼快速過濾 ---
         function buildOrderNoSelect() {
             const select = document.getElementById('orderNoSelect');
             if (!select) return;
@@ -562,7 +642,6 @@
             orderSuffixFilter = raw;
             document.getElementById('clearLast3Btn').classList.toggle('hidden', !raw);
 
-            // 若輸入後3碼剛好只唯一命中一張報廢單號，下拉選單自動跳到該單號
             const groups = getOrderGroups();
             const matched = groups.filter(([k]) => k.toLowerCase().endsWith(raw.toLowerCase()) || k.toLowerCase().includes(raw.toLowerCase()));
             if (raw && matched.length === 1) {
@@ -583,23 +662,59 @@
             if(id === 'ocrModal') { stopOcrCamera(); }
         }
 
-        // --- 新增：相機辨識大名 (OCR 智慧姓名比對) ---
+        // --- 升級版：相機辨識大名 (二值化預處理 + 姓名智慧擷取 + 設定點交人員) ---
         async function startNameOCR() {
             openModal('ocrModal');
             document.getElementById('ocrCandidates').classList.add('hidden');
             document.getElementById('ocrCandidates').innerHTML = '';
-            document.getElementById('ocrStatus').textContent = '正在啟動相機...';
+            document.getElementById('ocrPreviewBox').classList.add('hidden');
+            document.getElementById('ocrManualInput').value = currentHandoverPerson || '';
+            document.getElementById('ocrStatus').textContent = '正在啟動高解析度相機...';
+
+            // 產生目前篩選範圍內的保管人快速按鈕
+            renderQuickKeeperButtons();
+
             try {
                 ocrVideoStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 960 } }
+                    video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
                 });
                 const video = document.getElementById('ocrVideo');
                 video.srcObject = ocrVideoStream;
-                document.getElementById('ocrStatus').textContent = '請將「姓名」對準紫色框內，再點擊下方拍照辨識';
+                document.getElementById('ocrStatus').textContent = '請將識別證或表單上的「中文姓名」放大對準紫框中央';
             } catch (err) {
-                document.getElementById('ocrStatus').textContent = '無法直接開啟預覽，請點擊右下角「相簿/近拍」拍照辨識';
+                document.getElementById('ocrStatus').textContent = '若無法預覽鏡頭，請點右下角「原生相機近拍」或直接輸入姓名';
             }
             lucide.createIcons();
+        }
+
+        function renderQuickKeeperButtons() {
+            const listEl = document.getElementById('quickKeeperList');
+            const selectedMainDept = document.getElementById('deptFilter').value;
+            const selectedSubDept = document.getElementById('subDeptFilter').value;
+
+            const keepers = new Set();
+            // 優先列出已勾選物品的保管人
+            selectedIds.forEach(id => {
+                const it = data.find(d => d.id === id);
+                if (it && it.保管人) keepers.add(it.保管人);
+            });
+            // 再列出目前篩選範圍內的保管人
+            data.forEach(it => {
+                if (orderFilterVal && (it.報廢單號 || '(無單號)') !== orderFilterVal) return;
+                if (selectedSubDept && it.保管單位 !== selectedSubDept) return;
+                if (!selectedSubDept && selectedMainDept && !it.保管單位.startsWith(selectedMainDept)) return;
+                if (it.保管人) keepers.add(it.保管人);
+            });
+
+            const arr = Array.from(keepers).slice(0, 20);
+            if (arr.length === 0) {
+                document.getElementById('quickKeeperBox').classList.add('hidden');
+                return;
+            }
+            document.getElementById('quickKeeperBox').classList.remove('hidden');
+            listEl.innerHTML = arr.map(k =>
+                `<button onclick="applyOcrName('${esc(k)}')" class="bg-white hover:bg-purple-600 hover:text-white text-gray-700 border border-gray-300 px-2.5 py-1 rounded-lg text-xs font-bold transition">${esc(k)}</button>`
+            ).join('');
         }
 
         function stopOcrCamera() {
@@ -609,95 +724,179 @@
             }
         }
 
+        // 影像增強預處理：放大 2 倍 + 灰階對比強化 (讓文字邊緣銳利、消除底紋)
+        function preprocessImageCanvas(sourceCanvas, thresholdMode = 'contrast') {
+            const scale = 2;
+            const w = sourceCanvas.width * scale;
+            const h = sourceCanvas.height * scale;
+            const out = document.createElement('canvas');
+            out.width = w; out.height = h;
+            const octx = out.getContext('2d');
+            octx.fillStyle = '#ffffff';
+            octx.fillRect(0, 0, w, h);
+            octx.drawImage(sourceCanvas, 0, 0, w, h);
+
+            const imgData = octx.getImageData(0, 0, w, h);
+            const d = imgData.data;
+
+            // 計算平均亮度
+            let sum = 0;
+            for (let i = 0; i < d.length; i += 4) {
+                sum += 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+            }
+            const avg = sum / (d.length / 4);
+            const thresh = avg * 0.88; // 自適應閾值
+
+            for (let i = 0; i < d.length; i += 4) {
+                const gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+                let val;
+                if (thresholdMode === 'binary') {
+                    val = gray < thresh ? 0 : 255;
+                } else {
+                    // 高對比曲線強化
+                    val = Math.min(255, Math.max(0, (gray - avg) * 2.2 + 128));
+                }
+                d[i] = d[i+1] = d[i+2] = val;
+            }
+            octx.putImageData(imgData, 0, 0);
+            return out.toDataURL('image/png');
+        }
+
         async function captureAndRecognizeName() {
             const video = document.getElementById('ocrVideo');
             if (!video.srcObject || !video.videoWidth) {
-                alert("請先確認相機已啟動，或點選右側「相簿/近拍」按鈕！");
+                alert("鏡頭尚未就緒，請點選右方「原生相機近拍」或直接輸入姓名！");
                 return;
             }
-            // 只裁切畫面中央對準框區域 (75% 寬 x 40% 高)，大幅提升辨識速度與準確率
+            // 對應畫面中央窄框 (62% 寬 x 28% 高)
             const vw = video.videoWidth, vh = video.videoHeight;
-            const cw = Math.floor(vw * 0.75), ch = Math.floor(vh * 0.40);
+            const cw = Math.floor(vw * 0.62), ch = Math.floor(vh * 0.28);
             const cx = Math.floor((vw - cw) / 2), cy = Math.floor((vh - ch) / 2);
 
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = cw; tempCanvas.height = ch;
-            const tctx = tempCanvas.getContext('2d');
-            tctx.drawImage(video, cx, cy, cw, ch, 0, 0, cw, ch);
-            await runTesseractOCR(tempCanvas.toDataURL('image/png'));
+            const rawCanvas = document.createElement('canvas');
+            rawCanvas.width = cw; rawCanvas.height = ch;
+            rawCanvas.getContext('2d').drawImage(video, cx, cy, cw, ch, 0, 0, cw, ch);
+
+            const contrastUrl = preprocessImageCanvas(rawCanvas, 'contrast');
+            const binaryUrl = preprocessImageCanvas(rawCanvas, 'binary');
+            await runTesseractOCR(contrastUrl, binaryUrl);
         }
 
         async function ocrFromImageFile(e) {
             const file = e.target.files[0];
             if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async (evt) => {
-                await runTesseractOCR(evt.target.result);
-            };
-            reader.readAsDataURL(file);
+            const img = await loadImgPromise(URL.createObjectURL(file));
+            if (!img) return;
+            const rawCanvas = document.createElement('canvas');
+            const maxDim = 900;
+            const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+            rawCanvas.width = Math.floor(img.width * scale);
+            rawCanvas.height = Math.floor(img.height * scale);
+            rawCanvas.getContext('2d').drawImage(img, 0, 0, rawCanvas.width, rawCanvas.height);
+
+            const contrastUrl = preprocessImageCanvas(rawCanvas, 'contrast');
+            const binaryUrl = preprocessImageCanvas(rawCanvas, 'binary');
+            await runTesseractOCR(contrastUrl, binaryUrl);
             e.target.value = '';
         }
 
-        async function runTesseractOCR(imgDataUrl) {
+        // 從 OCR 雜訊字串中智慧抽取出最可能的 2~4 字台灣人名與保管人清單比對
+        function extractPossibleNames(rawText) {
+            const clean = rawText.replace(/[^\u4e00-\u9fa5]/g, '');
+            const candidates = new Set();
+
+            // 1. 先與 Excel 內的所有保管人進行相似度比對 (即使錯 1 個字也能拉出來)
+            const allKeepers = Array.from(new Set(data.map(d => d.保管人).filter(Boolean)));
+            const scoredKeepers = [];
+            allKeepers.forEach(k => {
+                if (clean.includes(k)) {
+                    scoredKeepers.push({ name: k, score: 100 });
+                } else {
+                    let hit = 0;
+                    for (const ch of k) { if (clean.includes(ch)) hit++; }
+                    if (k.length >= 2 && hit >= 1) {
+                        // 若姓氏相同額外加分
+                        const surnameBonus = clean.includes(k[0]) ? 15 : 0;
+                        scoredKeepers.push({ name: k, score: (hit / k.length) * 70 + surnameBonus });
+                    }
+                }
+            });
+            scoredKeepers.sort((a, b) => b.score - a.score);
+            scoredKeepers.slice(0, 4).forEach(s => { if (s.score >= 35) candidates.add(s.name); });
+
+            // 2. 從辨識文字中尋找以「常見百大姓氏」開頭的 3 字或 2 字詞組 (解決點交人不在保管人名單內的情況)
+            for (let i = 0; i < clean.length; i++) {
+                if (COMMON_SURNAMES.includes(clean[i])) {
+                    if (i + 3 <= clean.length) candidates.add(clean.slice(i, i + 3));
+                    if (i + 2 <= clean.length) candidates.add(clean.slice(i, i + 2));
+                }
+            }
+
+            // 3. 若本身就是純 2~4 個中文字，直接列為首選
+            if (clean.length >= 2 && clean.length <= 4) {
+                candidates.add(clean);
+            } else if (clean.length > 4) {
+                candidates.add(clean.slice(0, 3));
+            }
+
+            return { clean, list: Array.from(candidates).slice(0, 8) };
+        }
+
+        async function runTesseractOCR(contrastUrl, binaryUrl) {
             const statusEl = document.getElementById('ocrStatus');
             const snapBtn = document.getElementById('ocrSnapBtn');
             const candBox = document.getElementById('ocrCandidates');
+            const prevBox = document.getElementById('ocrPreviewBox');
+            const prevImg = document.getElementById('ocrPreviewImg');
+            const rawRes = document.getElementById('ocrRawResult');
+
+            prevBox.classList.remove('hidden');
+            prevBox.classList.add('flex');
+            prevImg.src = contrastUrl;
+            rawRes.textContent = '影像增強分析中...';
+
             const origBtnHtml = snapBtn.innerHTML;
             snapBtn.disabled = true;
-            snapBtn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> 正在辨識中文字...';
-            statusEl.textContent = '首次載入繁體中文模型約需數秒，請稍候...';
+            snapBtn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> 正在精準辨識...';
             lucide.createIcons();
 
             try {
-                const result = await Tesseract.recognize(imgDataUrl, 'chi_tra', {
+                // 第一次：高對比單行模式辨識
+                const res1 = await Tesseract.recognize(contrastUrl, 'chi_tra', {
                     logger: m => {
                         if (m.status === 'recognizing text') {
                             statusEl.textContent = `文字辨識中... ${Math.round((m.progress || 0) * 100)}%`;
                         }
                     }
                 });
-                const rawText = (result.data && result.data.text) ? result.data.text : '';
-                const cleanChinese = rawText.replace(/[^\u4e00-\u9fa5]/g, '');
+                let textCombined = (res1.data && res1.data.text) ? res1.data.text : '';
 
-                // 取得目前 Excel 內所有的「保管人」清單進行智慧比對
-                const allKeepers = Array.from(new Set(data.map(d => d.保管人).filter(Boolean)));
-                let matchedKeepers = [];
-
-                if (allKeepers.length > 0 && cleanChinese.length > 0) {
-                    // 1. 完全包含該保管人全名
-                    matchedKeepers = allKeepers.filter(k => cleanChinese.includes(k));
-                    // 2. 若因字體模糊只認出其中 2 個字 (如 3 字姓名中對中 2 字)
-                    if (matchedKeepers.length === 0) {
-                        matchedKeepers = allKeepers.filter(k => {
-                            let hit = 0;
-                            for (const ch of k) { if (cleanChinese.includes(ch)) hit++; }
-                            return k.length >= 2 && hit >= Math.min(2, k.length);
-                        });
-                    }
+                // 若第一次沒認出至少 2 個中文字，自動以二值化黑白圖進行第二次辨識
+                if (textCombined.replace(/[^\u4e00-\u9fa5]/g, '').length < 2 && binaryUrl) {
+                    prevImg.src = binaryUrl;
+                    const res2 = await Tesseract.recognize(binaryUrl, 'chi_tra');
+                    textCombined += ' ' + ((res2.data && res2.data.text) ? res2.data.text : '');
                 }
 
-                candBox.innerHTML = '';
-                candBox.classList.remove('hidden');
-                candBox.classList.add('flex');
+                const { clean, list } = extractPossibleNames(textCombined);
+                rawRes.textContent = clean ? `原始辨識: ${clean}` : '未偵測到清晰文字';
 
-                if (matchedKeepers.length === 1) {
-                    // 精準命中唯一保管人，直接填入搜尋框並關閉視窗
-                    applyOcrName(matchedKeepers[0]);
-                    return;
-                } else if (matchedKeepers.length > 1) {
-                    statusEl.textContent = '比對到多位可能的保管人，請點選：';
-                    matchedKeepers.forEach(name => {
-                        candBox.innerHTML += `<button onclick="applyOcrName('${esc(name)}')" class="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:bg-purple-700">👤 ${esc(name)}</button>`;
+                candBox.innerHTML = '';
+                if (list.length > 0) {
+                    candBox.classList.remove('hidden');
+                    candBox.classList.add('flex');
+                    // 自動把第一個最可能的姓名帶入手動微調框，方便使用者直接按確認或改1個字
+                    document.getElementById('ocrManualInput').value = list[0];
+                    statusEl.textContent = '請點選下方辨識結果，或在輸入框微調後按「確認套用」：';
+                    list.forEach(name => {
+                        candBox.innerHTML += `<button onclick="applyOcrName('${esc(name)}')" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm transition">👤 ${esc(name)}</button>`;
                     });
-                } else if (cleanChinese.length > 0) {
-                    statusEl.textContent = `辨識結果：「${cleanChinese}」，請點選套用：`;
-                    candBox.innerHTML += `<button onclick="applyOcrName('${esc(cleanChinese.slice(0, 4))}')" class="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold">搜尋「${esc(cleanChinese.slice(0, 4))}」</button>`;
                 } else {
-                    statusEl.textContent = '未偵測到清晰中文字，請靠近一點再拍一次！';
+                    statusEl.textContent = '未偵測到清晰姓名，請靠近對焦重拍，或直接在下方輸入框打字！';
                 }
             } catch (err) {
                 console.error(err);
-                statusEl.textContent = '辨識失敗，請確認網路連線或改用「相簿/近拍」重試。';
+                statusEl.textContent = '辨識發生錯誤，請直接在下方輸入框輸入點交人員姓名。';
             } finally {
                 snapBtn.disabled = false;
                 snapBtn.innerHTML = origBtnHtml;
@@ -705,8 +904,22 @@
             }
         }
 
+        function confirmManualOcrName() {
+            const val = document.getElementById('ocrManualInput').value.trim();
+            if (!val) { alert("請先輸入或辨識點交人員姓名！"); return; }
+            applyOcrName(val);
+        }
+
+        // 套用辨識出的大名：設定為「點交人員」（並同步寫入目前已勾選的項目，不污染搜尋框）
         function applyOcrName(name) {
-            document.getElementById('searchInput').value = name;
+            setHandoverPerson(name);
+            // 若目前畫面上已有打勾的項目，順便幫這些已勾選項目預先填上點交人員
+            let updated = 0;
+            selectedIds.forEach(id => {
+                const it = data.find(d => d.id === id);
+                if (it) { it.handoverPerson = name; updated++; }
+            });
+            if (updated > 0) saveData();
             closeModal('ocrModal');
             renderTable();
         }
@@ -723,8 +936,8 @@
                     const serialNumber = event.serialNumber;
                     if(serialNumber) { currentNfcCard = serialNumber; nfcDisplay.textContent = serialNumber; nfcDisplay.classList.add('text-green-600'); startNfcBtn.innerHTML = '<i data-lucide="wifi" class="w-4 h-4"></i>重新感應'; lucide.createIcons(); alert("✅ 卡號讀取成功：" + serialNumber); }
                 };
-                ndef.onreadingerror = () => { alert("❌ 卡片感應不良或格式不支援。"); startNfcBtn.innerHTML = '<i data-lucide="wifi" class="w-4 h-4"></i>啟動'; lucide.createIcons(); };
-            } catch (error) { alert("NFC 權限未開啟或啟動失敗。"); startNfcBtn.innerHTML = '<i data-lucide="wifi" class="w-4 h-4"></i>啟動'; lucide.createIcons(); }
+                ndef.onreadingerror = () => { alert("❌ 卡片感應不良或格式不支援。"); startNfcBtn.innerHTML = '<i data-lucide="wifi" class="w-4 h-4"></i>啟動 NFC'; lucide.createIcons(); };
+            } catch (error) { alert("NFC 權限未開啟或啟動失敗。"); startNfcBtn.innerHTML = '<i data-lucide="wifi" class="w-4 h-4"></i>啟動 NFC'; lucide.createIcons(); }
         });
 
         function clearSearchInput() {
@@ -802,7 +1015,7 @@
 
         function revertStatus() {
             if (prompt("請輸入管理密碼退回：") === ADMIN_PASSWORD) {
-                selectedIds.forEach(id => { const item = data.find(d => d.id === id); if(item) { item.status = 'pending'; item.signImg = ''; item.signId = ''; item.date = ''; item.nfcCard = ''; } });
+                selectedIds.forEach(id => { const item = data.find(d => d.id === id); if(item) { item.status = 'pending'; item.signImg = ''; item.signId = ''; item.date = ''; item.nfcCard = ''; item.handoverPerson = ''; } });
                 selectedIds.clear(); cleanupSignatures(); saveData(); buildOrderNoSelect(); renderTable(); updateActionUI();
             }
         }
@@ -816,7 +1029,7 @@
             const statusFilterVal = document.getElementById('statusFilter').value;
             tbody.innerHTML = '';
 
-            if(data.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400">尚無資料，請點擊右上角齒輪匯入 Excel</td></tr>`; return; }
+            if(data.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-400">尚無資料，請點擊右上角齒輪匯入 Excel</td></tr>`; return; }
             let filteredData = data.filter(item => {
                 if (viewOnlySelected && !selectedIds.has(item.id)) return false;
                 if (statusFilterVal !== 'all' && item.status !== statusFilterVal) return false;
@@ -828,16 +1041,28 @@
                 if (selectedSubDept) { if (item.保管單位 !== selectedSubDept) return false; } 
                 else if (selectedMainDept) { if (!item.保管單位.startsWith(selectedMainDept)) return false; }
                 if (!search) return true;
-                return item.物品編號.toLowerCase().includes(search) || item.物品名稱.toLowerCase().includes(search) || item.保管人.toLowerCase().includes(search) || item.報廢單號.toLowerCase().includes(search);
+                return item.物品編號.toLowerCase().includes(search) ||
+                       item.物品名稱.toLowerCase().includes(search) ||
+                       item.保管人.toLowerCase().includes(search) ||
+                       (item.handoverPerson || '').toLowerCase().includes(search) ||
+                       item.報廢單號.toLowerCase().includes(search);
             });
 
-            if(filteredData.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400">沒有符合篩選條件的物品</td></tr>`; return; }
+            if(filteredData.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-400">沒有符合篩選條件的物品</td></tr>`; return; }
             filteredData.forEach(item => {
                 const isSelected = selectedIds.has(item.id);
                 let statusBadge = item.status === 'completed' ? `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap"><i data-lucide="check" class="w-3 h-3 inline mr-1"></i>完成報廢</span><div class="text-[10px] text-gray-400 mt-1">${esc(item.date)}</div>` : `<span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap">待處理</span>`;
                 let nfcDisplayHtml = item.nfcCard ? `<div class="text-[10px] text-blue-500 mt-1 font-mono">💳 ${esc(item.nfcCard)}</div>` : '';
                 let remarksHtml = item.remarks.map((rmk, idx) => `<span class="remark-tag" onclick="removeRemark(${item.id}, ${idx}); event.stopPropagation();">${esc(rmk)} <span class="ml-1 text-[10px]">✕</span></span>`).join('');
-                const sg = getSign(item); let signHtml = sg ? `<img src="${sg}" class="h-10 border rounded bg-white object-contain inline-block ml-2 mt-1">` : '';
+                
+                // 第7欄：點交人員 + 簽名圖檔
+                const personName = item.handoverPerson || '';
+                const personBadge = personName
+                    ? `<span onclick="editItemHandoverPerson(${item.id}, event)" class="inline-flex items-center gap-1 bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full text-xs font-bold hover:bg-purple-200 cursor-pointer" title="點擊修改點交人員">👤 ${esc(personName)}</span>`
+                    : `<button onclick="editItemHandoverPerson(${item.id}, event)" class="text-gray-400 hover:text-purple-600 px-2 py-1 rounded text-xs border border-dashed border-gray-300 whitespace-nowrap">+ 點交人</button>`;
+
+                const sg = getSign(item);
+                let signHtml = sg ? `<img src="${sg}" class="h-10 border rounded bg-white object-contain block mt-1">` : '';
 
                 const tr = document.createElement('tr'); tr.className = 'hover:bg-gray-50 transition cursor-pointer';
                 tr.onclick = (e) => { if (!e.target.closest('input') && !e.target.closest('button') && !e.target.closest('.remark-tag')) { toggleSelect(item.id); const chk = document.getElementById(`chk-${item.id}`); if(chk) chk.checked = selectedIds.has(item.id); } };
@@ -847,14 +1072,15 @@
                     <td class="p-4 whitespace-nowrap"><div class="text-gray-800 font-medium">${esc(item.保管單位)}</div><div class="text-xs text-indigo-600 font-mono font-bold">${esc(item.報廢單號 || '無單號')}</div></td>
                     <td class="p-4 whitespace-nowrap"><div class="font-bold text-gray-800">${esc(item.保管人)}</div><div class="text-xs text-gray-500">${esc(item.存置地點)}</div></td>
                     <td class="p-4 whitespace-nowrap">${statusBadge}${nfcDisplayHtml}</td>
-                    <td class="p-4"><div class="flex flex-wrap items-center gap-1">${remarksHtml}<button onclick="openRemarkModalHandler(${item.id}); event.stopPropagation();" class="text-gray-400 hover:text-blue-500 px-2 py-1 rounded text-xs border border-dashed border-gray-300 whitespace-nowrap">+ 新增備註</button>${signHtml}</div></td>
+                    <td class="p-4"><div class="flex flex-wrap items-center gap-1">${remarksHtml}<button onclick="openRemarkModalHandler(${item.id}); event.stopPropagation();" class="text-gray-400 hover:text-blue-500 px-2 py-1 rounded text-xs border border-dashed border-gray-300 whitespace-nowrap">+ 新增備註</button></div></td>
+                    <td class="p-4 whitespace-nowrap">${personBadge}${signHtml}</td>
                 `;
                 tbody.appendChild(tr);
             });
             lucide.createIcons();
         }
 
-        // --- 畫布簽名 (支援直橫向切換自動保留筆跡並九成滿版) ---
+        // --- 畫布簽名 ---
         const canvas = document.getElementById('signatureCanvas'); const ctx = canvas.getContext('2d'); let isDrawing = false; let hasSigned = false;
         function resizeCanvas(preserve = false) {
             let backup = null;
@@ -896,19 +1122,28 @@
             openModal('signModal');
             setTimeout(() => { resizeCanvas(false); clearCanvas(); }, 50);
             document.getElementById('modalNfcDisplay').textContent = currentNfcCard ? `💳 卡號: ${currentNfcCard}` : '(無 NFC 綁定)';
+            document.getElementById('modalHandoverInput').value = currentHandoverPerson || '';
             document.getElementById('modalItemsList').innerHTML = `<div class="font-bold text-gray-700 mb-1">處室：${esc(Array.from(depts)[0])}（共 ${pendingIds.length} 筆）</div>` + pendingIds.map(id => { const item = data.find(d => d.id === id); return `<div>• ${esc(item.物品名稱)} <span class="text-gray-400 font-mono">(${esc(item.物品編號)})</span></div>`; }).join('') + (skipped ? `<div class="text-amber-600 mt-1">※ 已略過 ${skipped} 筆「已完成」的項目</div>` : '');
         }
-        function resetNfcCard() { currentNfcCard = ''; nfcDisplay.textContent = '尚未讀取'; nfcDisplay.classList.remove('text-green-600'); startNfcBtn.innerHTML = nfcScanning ? '<i data-lucide="wifi" class="w-4 h-4"></i>等待感應' : '<i data-lucide="wifi" class="w-4 h-4"></i>啟動'; lucide.createIcons(); }
+        function resetNfcCard() { currentNfcCard = ''; nfcDisplay.textContent = '尚未讀取'; nfcDisplay.classList.remove('text-green-600'); startNfcBtn.innerHTML = nfcScanning ? '<i data-lucide="wifi" class="w-4 h-4"></i>等待感應' : '<i data-lucide="wifi" class="w-4 h-4"></i>啟動 NFC'; lucide.createIcons(); }
         function confirmDisposal() {
             if (!hasSigned) { alert("請先簽名再儲存。"); return; } if (!currentNfcCard && !confirm("尚未感應 NFC 卡片，確定要在沒有卡號的情況下儲存嗎？")) return;
             const pendingItems = Array.from(selectedIds).map(id => data.find(d => d.id === id)).filter(it => it && it.status !== 'completed');
             if (pendingItems.length === 0) { closeModal('signModal'); return; }
+            const finalPerson = document.getElementById('modalHandoverInput').value.trim() || currentHandoverPerson;
             const signId = 'sig_' + Date.now(); signatures[signId] = getSignatureImage(); const currentTime = getFormattedTime();
-            pendingItems.forEach(item => { item.status = 'completed'; item.signId = signId; item.signImg = ''; item.date = currentTime; item.nfcCard = currentNfcCard; });
+            pendingItems.forEach(item => {
+                item.status = 'completed';
+                item.signId = signId;
+                item.signImg = '';
+                item.date = currentTime;
+                item.nfcCard = currentNfcCard;
+                item.handoverPerson = finalPerson || item.handoverPerson || '';
+            });
             selectedIds.clear(); closeModal('signModal'); saveData(); buildOrderNoSelect(); document.getElementById('searchInput').value = ''; if (viewOnlySelected) document.getElementById('viewSelectedBtn').click(); renderTable(); updateActionUI(); resetNfcCard();
         }
 
-        // --- 全新 PDF 引擎：使用原生 Canvas 繪製標準 A4 影像 + jsPDF 輸出，100% 絕不切邊 ---
+        // --- PDF 引擎：原生 Canvas 繪製標準 A4 影像 (含「點交人員」欄) ---
         function toggleAllRecords(checked) {
             document.querySelectorAll('.record-chk').forEach(chk => chk.checked = checked);
         }
@@ -961,7 +1196,6 @@
                     groups[key].push(r);
                 });
 
-                // A4 高解析度畫布 (1240 x 1754 px, 對應 210 x 297 mm)
                 const PAGE_W = 1240, PAGE_H = 1754, PAD = 60;
                 const CONTENT_W = PAGE_W - PAD * 2; // 1120px
                 const pages = [];
@@ -994,23 +1228,21 @@
 
                 drawPageHeader(pctx);
 
-                // 欄位寬度配置 (總和 1120px)
-                const colWidths = [70, 190, 330, 330, 200];
-                const colHeaders = ['序號', '報廢單號', '物品名稱 / 編號', '保管單位 / 保管人', '現場備註'];
+                // 6欄配置 (備註後面多一格「點交人員」，總寬 1120px)
+                const colWidths = [60, 175, 295, 280, 165, 145];
+                const colHeaders = ['序號', '報廢單號', '物品名稱 / 編號', '保管單位 / 保管人', '現場備註', '點交人員'];
 
                 for (const key in groups) {
                     const items = groups[key];
                     const first = items[0];
                     const signImgObj = await loadImgPromise(getSign(first));
 
-                    // 預估整個區塊高度，若超過當頁剩餘空間則換新頁
                     if (curY + 320 > PAGE_H - PAD) {
                         pctx = createNewPage();
                         curY = PAD;
                         drawPageHeader(pctx);
                     }
 
-                    const boxStartY = curY;
                     // 批次頂部資訊列
                     pctx.fillStyle = '#f8fafc';
                     pctx.fillRect(PAD, curY, CONTENT_W, 54);
@@ -1019,15 +1251,16 @@
                     pctx.strokeRect(PAD, curY, CONTENT_W, 54);
 
                     pctx.fillStyle = '#111827';
-                    pctx.font = 'bold 22px "Microsoft JhengHei", sans-serif';
-                    pctx.fillText('點交完成時間：' + (first.date || ''), PAD + 16, curY + 35);
+                    pctx.font = 'bold 21px "Microsoft JhengHei", sans-serif';
+                    pctx.fillText('點交時間：' + (first.date || ''), PAD + 14, curY + 35);
+                    pctx.fillStyle = '#6d28d9';
+                    pctx.fillText('點交人員：' + (first.handoverPerson || '未填'), PAD + 440, curY + 35);
                     pctx.fillStyle = '#1d4ed8';
                     pctx.textAlign = 'right';
-                    pctx.fillText('NFC 驗證卡號：' + (first.nfcCard || '無紀錄'), PAGE_W - PAD - 16, curY + 35);
+                    pctx.fillText('NFC 卡號：' + (first.nfcCard || '無紀錄'), PAGE_W - PAD - 14, curY + 35);
                     pctx.textAlign = 'left';
                     curY += 54;
 
-                    // 表格標題列
                     function drawTableHeader(cx, y) {
                         cx.fillStyle = '#e5e7eb';
                         cx.fillRect(PAD, y, CONTENT_W, 48);
@@ -1037,8 +1270,8 @@
                         for (let i = 0; i < colHeaders.length; i++) {
                             cx.strokeRect(x, y, colWidths[i], 48);
                             cx.fillStyle = '#1f2937';
-                            cx.font = 'bold 21px "Microsoft JhengHei", sans-serif';
-                            cx.fillText(colHeaders[i], x + 12, y + 32);
+                            cx.font = 'bold 20px "Microsoft JhengHei", sans-serif';
+                            cx.fillText(colHeaders[i], x + 10, y + 32);
                             x += colWidths[i];
                         }
                         return y + 48;
@@ -1046,17 +1279,17 @@
 
                     curY = drawTableHeader(pctx, curY);
 
-                    // 逐筆繪製資料列
                     for (let idx = 0; idx < items.length; idx++) {
                         const it = items[idx];
-                        pctx.font = '20px "Microsoft JhengHei", sans-serif';
-                        const nameLines = wrapCanvasLines(pctx, it.物品名稱, colWidths[2] - 24);
-                        const idLines = wrapCanvasLines(pctx, it.物品編號, colWidths[2] - 24);
-                        const deptLines = wrapCanvasLines(pctx, it.保管單位, colWidths[3] - 24);
-                        const keeperLines = wrapCanvasLines(pctx, it.保管人 + (it.存置地點 ? ' (' + it.存置地點 + ')' : ''), colWidths[3] - 24);
-                        const rmkLines = wrapCanvasLines(pctx, (it.remarks || []).join(', ') || '無', colWidths[4] - 24);
+                        pctx.font = '19px "Microsoft JhengHei", sans-serif';
+                        const nameLines = wrapCanvasLines(pctx, it.物品名稱, colWidths[2] - 20);
+                        const idLines = wrapCanvasLines(pctx, it.物品編號, colWidths[2] - 20);
+                        const deptLines = wrapCanvasLines(pctx, it.保管單位, colWidths[3] - 20);
+                        const keeperLines = wrapCanvasLines(pctx, it.保管人 + (it.存置地點 ? ' (' + it.存置地點 + ')' : ''), colWidths[3] - 20);
+                        const rmkLines = wrapCanvasLines(pctx, (it.remarks || []).join(', ') || '無', colWidths[4] - 20);
+                        const hpLines = wrapCanvasLines(pctx, it.handoverPerson || '-', colWidths[5] - 20);
 
-                        const maxLines = Math.max(nameLines.length + idLines.length, deptLines.length + keeperLines.length, rmkLines.length, 2);
+                        const maxLines = Math.max(nameLines.length + idLines.length, deptLines.length + keeperLines.length, rmkLines.length, hpLines.length, 2);
                         const rowH = Math.max(68, maxLines * 26 + 20);
 
                         if (curY + rowH + 150 > PAGE_H - PAD) {
@@ -1076,39 +1309,46 @@
 
                         // 欄1: 序號
                         pctx.fillStyle = '#111827';
-                        pctx.font = '20px "Microsoft JhengHei", sans-serif';
-                        pctx.fillText(String(idx + 1), PAD + 24, curY + 38);
+                        pctx.font = '19px "Microsoft JhengHei", sans-serif';
+                        pctx.fillText(String(idx + 1), PAD + 20, curY + 38);
 
                         // 欄2: 報廢單號
-                        pctx.font = 'bold 20px monospace';
-                        pctx.fillText(it.報廢單號 || '無', PAD + colWidths[0] + 12, curY + 38);
+                        pctx.font = 'bold 19px monospace';
+                        pctx.fillText(it.報廢單號 || '無', PAD + colWidths[0] + 10, curY + 38);
 
                         // 欄3: 物品名稱 + 編號
                         let ty = curY + 28;
-                        const x2 = PAD + colWidths[0] + colWidths[1] + 12;
-                        pctx.font = 'bold 20px "Microsoft JhengHei", sans-serif';
+                        const x2 = PAD + colWidths[0] + colWidths[1] + 10;
+                        pctx.font = 'bold 19px "Microsoft JhengHei", sans-serif';
                         pctx.fillStyle = '#111827';
-                        nameLines.forEach(l => { pctx.fillText(l, x2, ty); ty += 26; });
-                        pctx.font = '18px monospace';
+                        nameLines.forEach(l => { pctx.fillText(l, x2, ty); ty += 25; });
+                        pctx.font = '17px monospace';
                         pctx.fillStyle = '#4b5563';
-                        idLines.forEach(l => { pctx.fillText(l, x2, ty); ty += 24; });
+                        idLines.forEach(l => { pctx.fillText(l, x2, ty); ty += 23; });
 
                         // 欄4: 保管單位 + 保管人
                         ty = curY + 28;
                         const x3 = x2 + colWidths[2];
-                        pctx.font = '20px "Microsoft JhengHei", sans-serif';
+                        pctx.font = '19px "Microsoft JhengHei", sans-serif';
                         pctx.fillStyle = '#111827';
-                        deptLines.forEach(l => { pctx.fillText(l, x3, ty); ty += 26; });
-                        pctx.font = '18px "Microsoft JhengHei", sans-serif';
+                        deptLines.forEach(l => { pctx.fillText(l, x3, ty); ty += 25; });
+                        pctx.font = '17px "Microsoft JhengHei", sans-serif';
                         pctx.fillStyle = '#4b5563';
-                        keeperLines.forEach(l => { pctx.fillText(l, x3, ty); ty += 24; });
+                        keeperLines.forEach(l => { pctx.fillText(l, x3, ty); ty += 23; });
 
                         // 欄5: 備註
                         ty = curY + 32;
                         const x4 = x3 + colWidths[3];
-                        pctx.font = 'bold 19px "Microsoft JhengHei", sans-serif';
+                        pctx.font = 'bold 18px "Microsoft JhengHei", sans-serif';
                         pctx.fillStyle = (it.remarks && it.remarks.length) ? '#b91c1c' : '#9ca3af';
-                        rmkLines.forEach(l => { pctx.fillText(l, x4, ty); ty += 25; });
+                        rmkLines.forEach(l => { pctx.fillText(l, x4, ty); ty += 24; });
+
+                        // 欄6: 點交人員
+                        ty = curY + 34;
+                        const x5 = x4 + colWidths[4];
+                        pctx.font = 'bold 19px "Microsoft JhengHei", sans-serif';
+                        pctx.fillStyle = '#5b21b6';
+                        hpLines.forEach(l => { pctx.fillText(l, x5, ty); ty += 24; });
 
                         curY += rowH;
                     }
@@ -1134,7 +1374,6 @@
                     curY += signBoxH + 35;
                 }
 
-                // 組裝進 jsPDF A4 直向檔案
                 const jsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
                 const fileName = `報廢點交證明單_${getFormattedTime().replace(/[-: ]/g, "")}.pdf`;
 
@@ -1163,7 +1402,6 @@
                         }
                     }
                 } else {
-                    // 備援：透過 html2pdf 打包單張 Canvas
                     await html2pdf().set({
                         margin: 0, filename: fileName,
                         image: { type: 'jpeg', quality: 0.98 },
@@ -1180,7 +1418,7 @@
             }
         }
 
-        // --- 備註與 Excel 匯入匯出 ---
+        // --- 備註與 Excel 匯入匯出 (匯出時在備註後面新增「點交人員」欄) ---
         function openRemarkModalHandler(id) { currentRemarkItemId = id; openModal('remarkModal'); ['opt-power', 'opt-cable', 'opt-broken'].forEach(opt => document.getElementById(opt).classList.remove('selected')); document.getElementById('qty-power').value = 1; document.getElementById('qty-cable').value = 1; document.getElementById('customRemark').value = ''; }
         function toggleOption(id) { document.getElementById(id).classList.toggle('selected'); }
         document.getElementById('confirmRemarkBtn').addEventListener('click', () => { if (!currentRemarkItemId) return; const item = data.find(d => d.id === currentRemarkItemId); if(document.getElementById('opt-power').classList.contains('selected')) item.remarks.push(`缺電源線x${document.getElementById('qty-power').value}`); if(document.getElementById('opt-cable').classList.contains('selected')) item.remarks.push(`缺傳輸線x${document.getElementById('qty-cable').value}`); if(document.getElementById('opt-broken').classList.contains('selected')) item.remarks.push('設備損毀'); const customText = document.getElementById('customRemark').value.trim(); if (customText) item.remarks.push(customText); closeModal('remarkModal'); saveData(); renderTable(); });
@@ -1201,19 +1439,19 @@
                 const rows = XLSX.utils.sheet_to_json(sheet, {header: 1, defval: ''});
                 if (rows.length < 2) { alert("無資料！"); return; }
                 const headers = rows[0].map(h => cleanStr(h));
-                const idxOrderNo = headers.findIndex(h => h === '報廢單號') !== -1 ? headers.findIndex(h => h === '報廢單號') : 0; // A欄
-                let idxItemId = 6; headers.forEach((h, i) => { if (h === '物品編號') idxItemId = i; }); // G欄
+                const idxOrderNo = headers.findIndex(h => h === '報廢單號') !== -1 ? headers.findIndex(h => h === '報廢單號') : 0;
+                let idxItemId = 6; headers.forEach((h, i) => { if (h === '物品編號') idxItemId = i; });
                 const idxItemName = headers.findIndex(h => h === '物品名稱') !== -1 ? headers.findIndex(h => h === '物品名稱') : 7;
-                const idxDept = headers.findIndex(h => h === '保管單位') !== -1 ? headers.findIndex(h => h === '保管單位') : 12; // M欄
-                const idxKeeper = headers.findIndex(h => h === '保管人') !== -1 ? headers.findIndex(h => h === '保管人') : 14; // O欄
-                const idxLocation = headers.findIndex(h => h === '存置地點') !== -1 ? headers.findIndex(h => h === '存置地點') : 16; // Q欄
+                const idxDept = headers.findIndex(h => h === '保管單位') !== -1 ? headers.findIndex(h => h === '保管單位') : 12;
+                const idxKeeper = headers.findIndex(h => h === '保管人') !== -1 ? headers.findIndex(h => h === '保管人') : 14;
+                const idxLocation = headers.findIndex(h => h === '存置地點') !== -1 ? headers.findIndex(h => h === '存置地點') : 16;
                 const parsedData = [];
                 for (let i = 1; i < rows.length; i++) {
                     const r = rows[i]; if (!r || r.length === 0) continue;
                     let itemId = cleanStr(r[idxItemId]);
                     if (!itemId.includes('-')) { const found = r.find(cell => /\d{5,}-\d{3,}/.test(cleanStr(cell))); if (found) itemId = cleanStr(found); }
                     const itemName = cleanStr(r[idxItemName]); if (!itemId && !itemName) continue;
-                    parsedData.push({ id: i + 100, 報廢單號: cleanStr(r[idxOrderNo]), 物品編號: itemId, 物品名稱: itemName, 保管單位: cleanStr(r[idxDept]), 保管人: cleanStr(r[idxKeeper]), 存置地點: cleanStr(r[idxLocation]), raw: headers.map((h, ci) => normRaw(r[ci], h)), status: 'pending', signImg: '', date: '', nfcCard: '', remarks: [] });
+                    parsedData.push({ id: i + 100, 報廢單號: cleanStr(r[idxOrderNo]), 物品編號: itemId, 物品名稱: itemName, 保管單位: cleanStr(r[idxDept]), 保管人: cleanStr(r[idxKeeper]), 存置地點: cleanStr(r[idxLocation]), raw: headers.map((h, ci) => normRaw(r[ci], h)), status: 'pending', signImg: '', date: '', nfcCard: '', handoverPerson: '', remarks: [] });
                 }
                 data = parsedData; signatures = {}; rawHeaders = headers.slice(); clearOrderFilter(true);
                 importVersion = getFormattedTime() + " 匯入"; document.getElementById('versionDisplay').textContent = "資料版本: " + importVersion; selectedIds.clear();
@@ -1226,10 +1464,11 @@
         function buildExportTable(done) {
             const legacy = !(rawHeaders.length && done.every(d => Array.isArray(d.raw)));
             const baseHeaders = legacy ? ['報廢單號', '物品編號', '物品名稱', '保管單位', '保管人', '存置地點'] : rawHeaders.slice();
-            const headers = baseHeaders.concat(['處理狀態', '報廢完成時間', '綁定卡號', '現場備註事項', '簽名']);
+            // 備註事項後面多一格「點交人員」
+            const headers = baseHeaders.concat(['處理狀態', '報廢完成時間', '綁定卡號', '現場備註事項', '點交人員', '簽名']);
             const rows = done.map(d => {
                 const base = legacy ? [d.報廢單號, d.物品編號, d.物品名稱, d.保管單位, d.保管人, d.存置地點] : baseHeaders.map((_, i) => d.raw[i] === undefined ? '' : d.raw[i]);
-                return base.concat(['完成報廢', d.date, d.nfcCard, d.remarks.join(', '), '']);
+                return base.concat(['完成報廢', d.date, d.nfcCard, d.remarks.join(', '), d.handoverPerson || '', '']);
             });
             return { headers, rows, signCol: headers.length - 1 };
         }
@@ -1244,7 +1483,7 @@
             try {
                 const wb = new ExcelJS.Workbook(); const ws = wb.addWorksheet('已報廢清單');
                 const head = ws.addRow(headers); head.font = { bold: true }; head.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }; head.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
-                for (let c = signCol - 4; c <= signCol + 1; c++) head.getCell(c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } };
+                for (let c = signCol - 5; c <= signCol + 1; c++) head.getCell(c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } };
                 done.forEach((d, i) => {
                     const values = rows[i].slice(); const img = getSign(d); if (!img) values[signCol] = '（無簽名）';
                     const row = ws.addRow(values); row.height = 45; row.alignment = { vertical: 'middle', wrapText: true };
@@ -1310,9 +1549,13 @@
                     <td class="p-3 font-mono whitespace-nowrap">${esc(d.報廢單號 || '無單號')}</td>
                     <td class="p-3 whitespace-nowrap">${esc(d.物品名稱)}<br><span class="text-xs text-gray-400 font-mono">${esc(d.物品編號)}</span></td>
                     <td class="p-3 whitespace-nowrap">${esc(d.保管單位)}<br><span class="text-gray-500">${esc(d.保管人)}</span></td>
-                    <td class="p-3">${getSign(d) ? `<img src="${getSign(d)}" class="h-12 border bg-white rounded object-contain">` : '<span class="text-gray-300">無圖檔</span>'}</td>
+                    <td class="p-3 text-red-600 text-xs">${esc((d.remarks || []).join(', ') || '-')}</td>
+                    <td class="p-3 whitespace-nowrap">
+                        <div class="text-xs font-bold text-purple-800 mb-1">👤 ${esc(d.handoverPerson || '未填')}</div>
+                        ${getSign(d) ? `<img src="${getSign(d)}" class="h-10 border bg-white rounded object-contain">` : '<span class="text-gray-300">無圖檔</span>'}
+                    </td>
                 </tr>
-            `).join('') : `<tr><td colspan="6" class="p-6 text-center text-gray-500">尚無已完成報廢的紀錄</td></tr>`;
+            `).join('') : `<tr><td colspan="7" class="p-6 text-center text-gray-500">尚無已完成報廢的紀錄</td></tr>`;
         }
     </script>
 </body>
