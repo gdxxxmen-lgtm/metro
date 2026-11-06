@@ -60,7 +60,7 @@
     <div id="mainApp" class="app-content min-h-screen">
         <header class="bg-white shadow-sm px-4 md:px-6 py-4 flex justify-between items-center sticky top-0 z-10">
             <div>
-                <h1 class="text-lg md:text-xl font-bold text-gray-800 tracking-wide">資訊物品點交系統 <span class="text-xs font-normal text-gray-400">(v2.6)</span></h1>
+                <h1 class="text-lg md:text-xl font-bold text-gray-800 tracking-wide">資訊物品點交系統 <span class="text-xs font-normal text-gray-400">(v2.7)</span></h1>
                 <p id="versionDisplay" class="text-xs font-bold text-blue-600 mt-1">無暫存資料，請匯入 Excel</p>
             </div>
             <div class="relative">
@@ -94,21 +94,22 @@
                     </div>
                     <div>
                         <h2 class="text-base md:text-lg font-bold text-gray-800">NFC 卡片 ＆ 點交人員登記</h2>
-                        <p class="text-xs md:text-sm text-gray-500">感應卡片或辨識大名後，將自動綁定至後續報廢項目的「卡號」與備註後方的「點交人員」欄。</p>
+                        <p class="text-xs md:text-sm text-gray-500">感應卡片或點擊右側「點交人員」辨識後，將自動綁定至後續報廢項目。</p>
                     </div>
                 </div>
-                <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
-                    <!-- 目前點交人員顯示框 -->
-                    <div onclick="startNameOCR()" class="bg-purple-50 hover:bg-purple-100 px-3 py-2 rounded-lg border border-purple-200 cursor-pointer transition flex items-center gap-2" title="點擊開啟相機辨識或手動輸入點交人員">
-                        <div>
-                            <span class="text-[10px] md:text-xs text-purple-600 font-bold block">目前點交人員 (點擊設定)</span>
-                            <span id="handover-person-display" class="font-bold text-purple-900 text-sm">尚未設定</span>
+                <div class="flex flex-wrap items-center gap-2.5 w-full lg:w-auto justify-end">
+                    <!-- 紅圈位置：點交人員按鈕（辨識完直接在此顯示名稱） -->
+                    <div id="handoverPersonBtnBox" onclick="startNameOCR()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl cursor-pointer transition flex items-center gap-2.5 shadow-md" title="點擊開啟相機辨識或輸入點交人員">
+                        <i id="handoverPersonIcon" data-lucide="scan-face" class="w-5 h-5 flex-shrink-0"></i>
+                        <div class="leading-tight">
+                            <span id="handoverPersonLabel" class="text-[11px] text-purple-200 font-bold block">點交人員</span>
+                            <span id="handover-person-display" class="font-bold text-sm whitespace-nowrap">點擊辨識 / 設定</span>
                         </div>
-                        <button onclick="clearHandoverPerson(event)" id="clearPersonBtn" class="hidden text-purple-400 hover:text-red-500 text-xs font-bold px-1" title="清除點交人員">✕</button>
+                        <button onclick="clearHandoverPerson(event)" id="clearPersonBtn" class="hidden ml-1 bg-purple-100 hover:bg-red-100 text-purple-700 hover:text-red-600 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold transition" title="清除點交人員">✕</button>
                     </div>
 
                     <!-- 目前讀取卡號顯示框 -->
-                    <div class="bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                    <div class="bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
                         <span class="text-[10px] md:text-xs text-gray-500 block">目前讀取卡號</span>
                         <span id="nfc-card-id" class="font-mono font-bold text-gray-800 text-sm">尚未讀取</span>
                     </div>
@@ -167,17 +168,14 @@
                             </div>
                         </div>
 
+                        <!-- 搜尋列：僅保留搜尋框、掃條碼、清除 -->
                         <div class="flex flex-wrap gap-2 w-full md:w-auto">
                             <div class="relative flex-1 md:flex-none min-w-[180px]">
                                 <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-gray-400"></i>
-                                <input type="text" id="searchInput" placeholder="搜尋編號、名稱或保管人..." class="pl-9 pr-4 py-2 border rounded-lg text-sm w-full md:w-60 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                <input type="text" id="searchInput" placeholder="搜尋編號、名稱或保管人..." class="pl-9 pr-4 py-2 border rounded-lg text-sm w-full md:w-64 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
                             </div>
                             <button onclick="startCameraScanner()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition whitespace-nowrap flex-shrink-0">
                                 <i data-lucide="camera" class="w-4 h-4"></i> 掃條碼
-                            </button>
-                            <!-- 相機辨識大名 (設定點交人員) -->
-                            <button onclick="startNameOCR()" class="bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition whitespace-nowrap flex-shrink-0" title="拍照辨識識別證設定點交人員">
-                                <i data-lucide="scan-face" class="w-4 h-4"></i> 辨識大名
                             </button>
                             <button onclick="clearSearchInput()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-1 transition whitespace-nowrap flex-shrink-0" title="清除左方搜尋與單號篩選">
                                 <i data-lucide="x-circle" class="w-4 h-4"></i> 清除
@@ -264,13 +262,13 @@
         </div>
     </div>
 
-    <!-- 手機版面優化：相機大名 OCR 辨識彈窗 (移除下方預設人名列表、修正確認按鈕不超出視窗) -->
+    <!-- 點交人員彈窗 (相機辨識大名) -->
     <div id="ocrModal" class="hidden fixed inset-0 bg-black/75 items-center justify-center z-50 p-3">
         <div class="bg-white rounded-2xl p-4 w-full max-w-md shadow-2xl flex flex-col max-h-[92vh] overflow-y-auto overflow-x-hidden box-border">
             <div class="flex justify-between items-center mb-2.5">
                 <h2 class="text-base md:text-lg font-bold text-gray-800 flex items-center gap-1.5">
                     <i data-lucide="user-check" class="w-5 h-5 text-purple-600 flex-shrink-0"></i>
-                    <span>辨識大名（設定點交人員）</span>
+                    <span>點交人員（相機辨識大名）</span>
                 </h2>
                 <button onclick="closeModal('ocrModal')" class="text-gray-400 hover:text-gray-700 p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
             </div>
@@ -296,7 +294,7 @@
             <!-- 辨識出的候選姓名按鈕區 (拍照後才會出現) -->
             <div id="ocrCandidates" class="hidden flex-wrap gap-1.5 mb-2.5 p-2 bg-purple-50 rounded-lg border border-purple-100 items-center w-full box-border"></div>
 
-            <!-- 修正手機版不超出視窗：使用 min-w-0 彈性收縮輸入框 + 固定不擠壓的「確認」按鈕 -->
+            <!-- 手機版自適應寬度：使用 min-w-0 彈性收縮輸入框 + 固定不擠壓的「確認」按鈕 -->
             <div class="bg-purple-50/80 p-2.5 rounded-xl border border-purple-200 mb-3 w-full box-border">
                 <label class="block text-xs font-bold text-purple-800 mb-1.5">👤 點交人員姓名（可拍照辨識或直接輸入）：</label>
                 <div class="flex items-center gap-2 w-full">
@@ -457,7 +455,7 @@
 
         // --- 初始化與登入 ---
         window.onload = () => {
-            if (currentHandoverPerson) setHandoverPerson(currentHandoverPerson);
+            setHandoverPerson(currentHandoverPerson);
             const authExpiry = localStorage.getItem('authExpiry');
             if (authExpiry && Date.now() < parseInt(authExpiry)) {
                 document.getElementById('lockScreen').style.display = 'none';
@@ -526,19 +524,30 @@
             }
         }
 
-        // --- 點交人員設定與更新顯示 ---
+        // --- 紅圈位置：點交人員按鈕與名稱顯示切換 ---
         function setHandoverPerson(name) {
             currentHandoverPerson = String(name || '').trim();
             localStorage.setItem('lastHandoverPerson', currentHandoverPerson);
+            const box = document.getElementById('handoverPersonBtnBox');
+            const label = document.getElementById('handoverPersonLabel');
             const disp = document.getElementById('handover-person-display');
             const clrBtn = document.getElementById('clearPersonBtn');
+
             if (currentHandoverPerson) {
+                // 已辨識/設定姓名：在同一個紅圈框直接醒目顯示點交人員名稱
+                box.className = "bg-purple-50 hover:bg-purple-100 text-purple-900 px-4 py-2 rounded-xl border-2 border-purple-400 cursor-pointer transition flex items-center gap-2.5 shadow-sm";
+                label.className = "text-[10px] text-purple-600 font-bold block";
+                label.textContent = "點交人員 (點擊重設)";
+                disp.className = "font-bold text-base text-purple-900 whitespace-nowrap";
                 disp.textContent = currentHandoverPerson;
-                disp.classList.add('text-emerald-700');
                 clrBtn.classList.remove('hidden');
             } else {
-                disp.textContent = '尚未設定';
-                disp.classList.remove('text-emerald-700');
+                // 未設定：呈現「點交人員」相機辨識按鈕樣式
+                box.className = "bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl cursor-pointer transition flex items-center gap-2.5 shadow-md";
+                label.className = "text-[10px] text-purple-200 font-bold block";
+                label.textContent = "點交人員";
+                disp.className = "font-bold text-sm text-white whitespace-nowrap";
+                disp.textContent = "點擊辨識 / 設定";
                 clrBtn.classList.add('hidden');
             }
         }
@@ -661,7 +670,7 @@
             if(id === 'ocrModal') { stopOcrCamera(); }
         }
 
-        // --- 專為北捷識別證調校：相機辨識大名 (無預設人名列表、單行窄框、記錄至點交人員) ---
+        // --- 點交人員：相機辨識大名 ---
         async function startNameOCR() {
             openModal('ocrModal');
             document.getElementById('ocrCandidates').classList.add('hidden');
@@ -690,7 +699,6 @@
             }
         }
 
-        // 針對識別證灰底黑字的強化濾鏡：濾除卡套眩光與淺灰斑點，只保留深色筆畫
         function preprocessBadgeCanvas(sourceCanvas, mode = 'badge') {
             const scale = 2.5;
             const w = Math.floor(sourceCanvas.width * scale);
@@ -735,7 +743,6 @@
                 alert("鏡頭尚未就緒，請點選右方「原生近拍」或直接輸入姓名！");
                 return;
             }
-            // 對應畫面中央單行窄框 (60% 寬 x 22% 高)
             const vw = video.videoWidth, vh = video.videoHeight;
             const cw = Math.floor(vw * 0.60), ch = Math.floor(vh * 0.22);
             const cx = Math.floor((vw - cw) / 2), cy = Math.floor((vh - ch) / 2);
@@ -767,13 +774,11 @@
             e.target.value = '';
         }
 
-        // 針對北捷識別證的智慧姓名過濾器：剔除固定字樣與衣領雜訊，精準鎖定百大姓氏開頭
         function extractPossibleNames(rawText) {
             let cleanedText = rawText.replace(/台北捷運公司|臺北捷運公司|台北大眾捷運|股份有限公司|資訊處|系統處|數位發展處|人力資源處|車輛處|電機處/g, '');
             const clean = cleanedText.replace(/[^\u4e00-\u9fa5]/g, '');
             const candidates = new Set();
 
-            // 1. 優先尋找以「台灣百大姓氏」開頭的 3 字與 2 字姓名
             for (let i = 0; i < clean.length; i++) {
                 if (COMMON_SURNAMES.includes(clean[i])) {
                     if (i + 3 <= clean.length) candidates.add(clean.slice(i, i + 3));
@@ -781,7 +786,6 @@
                 }
             }
 
-            // 2. 與 Excel 內的所有保管人進行相似度比對
             const allKeepers = Array.from(new Set(data.map(d => d.保管人).filter(Boolean)));
             const scoredKeepers = [];
             allKeepers.forEach(k => {
@@ -799,7 +803,6 @@
             scoredKeepers.sort((a, b) => b.score - a.score);
             scoredKeepers.slice(0, 3).forEach(s => { if (s.score >= 55) candidates.add(s.name); });
 
-            // 3. 若本身就是純 2~4 個中文字
             if (clean.length >= 2 && clean.length <= 4) {
                 candidates.add(clean);
             } else if (candidates.size === 0 && clean.length > 0) {
@@ -879,7 +882,7 @@
             applyOcrName(val);
         }
 
-        // 套用大名至「點交人員」欄位
+        // 套用大名並直接顯示在上方紅圈「點交人員」位置
         function applyOcrName(name) {
             setHandoverPerson(name);
             let updated = 0;
