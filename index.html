@@ -60,7 +60,7 @@
     <div id="mainApp" class="app-content min-h-screen">
         <header class="bg-white shadow-sm px-4 md:px-6 py-4 flex justify-between items-center sticky top-0 z-10">
             <div>
-                <h1 class="text-lg md:text-xl font-bold text-gray-800 tracking-wide">資訊物品點交系統 <span class="text-xs font-normal text-gray-400">(v2.5 橫版PDF)</span></h1>
+                <h1 class="text-lg md:text-xl font-bold text-gray-800 tracking-wide">資訊物品點交系統 <span class="text-xs font-normal text-gray-400">(v2.6)</span></h1>
                 <p id="versionDisplay" class="text-xs font-bold text-blue-600 mt-1">無暫存資料，請匯入 Excel</p>
             </div>
             <div class="relative">
@@ -264,58 +264,56 @@
         </div>
     </div>
 
-    <!-- 專為北捷識別證優化：相機大名 OCR 辨識彈窗 (設定點交人員) -->
-    <div id="ocrModal" class="hidden fixed inset-0 bg-black/75 items-center justify-center z-50 p-2">
-        <div class="bg-white rounded-2xl p-4 md:p-5 w-[96%] max-w-md shadow-2xl flex flex-col max-h-[94vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-2">
-                <h2 class="text-base md:text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <i data-lucide="user-check" class="w-5 h-5 text-purple-600"></i> 辨識大名（記錄至點交人員）
+    <!-- 手機版面優化：相機大名 OCR 辨識彈窗 (移除下方預設人名列表、修正確認按鈕不超出視窗) -->
+    <div id="ocrModal" class="hidden fixed inset-0 bg-black/75 items-center justify-center z-50 p-3">
+        <div class="bg-white rounded-2xl p-4 w-full max-w-md shadow-2xl flex flex-col max-h-[92vh] overflow-y-auto overflow-x-hidden box-border">
+            <div class="flex justify-between items-center mb-2.5">
+                <h2 class="text-base md:text-lg font-bold text-gray-800 flex items-center gap-1.5">
+                    <i data-lucide="user-check" class="w-5 h-5 text-purple-600 flex-shrink-0"></i>
+                    <span>辨識大名（設定點交人員）</span>
                 </h2>
-                <button onclick="closeModal('ocrModal')" class="text-gray-400 hover:text-gray-700"><i data-lucide="x" class="w-6 h-6"></i></button>
+                <button onclick="closeModal('ocrModal')" class="text-gray-400 hover:text-gray-700 p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
             </div>
 
-            <!-- 鏡頭預覽與「單行窄框」：避開上方大頭照衣領與下方英文 Wei-jau -->
-            <div class="relative rounded-xl overflow-hidden bg-black aspect-[4/3] flex items-center justify-center">
+            <!-- 鏡頭預覽與「單行窄框」：避開上方大頭照衣領與下方英文 -->
+            <div class="relative rounded-xl overflow-hidden bg-black aspect-[4/3] flex items-center justify-center w-full">
                 <video id="ocrVideo" autoplay playsinline class="w-full h-full object-cover"></video>
                 <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span class="text-[11px] text-amber-200 bg-black/80 px-2.5 py-0.5 rounded-full mb-1.5 font-bold">⚠️ 只框住「3個中文字」，避開照片、英文與反光</span>
-                    <div class="w-[58%] h-[20%] border-2 border-purple-400 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.62)]"></div>
+                    <span class="text-[11px] text-amber-200 bg-black/80 px-2.5 py-0.5 rounded-full mb-1.5 font-bold">請只框住「3個中文字」，避開照片與反光</span>
+                    <div class="w-[60%] h-[22%] border-2 border-purple-400 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.62)]"></div>
                 </div>
             </div>
 
             <!-- 擷取畫面預覽 -->
-            <div id="ocrPreviewBox" class="hidden mt-2 items-center gap-2 bg-gray-50 p-2 rounded-lg border text-xs text-gray-600">
-                <span>擷取區塊：</span>
-                <img id="ocrPreviewImg" class="h-8 border rounded bg-white object-contain" alt="OCR預覽">
-                <span id="ocrRawResult" class="font-mono text-gray-500 truncate flex-1"></span>
+            <div id="ocrPreviewBox" class="hidden mt-2 items-center gap-2 bg-gray-50 p-2 rounded-lg border text-xs text-gray-600 w-full box-border">
+                <span class="flex-shrink-0">擷取區塊：</span>
+                <img id="ocrPreviewImg" class="h-7 border rounded bg-white object-contain flex-shrink-0" alt="OCR預覽">
+                <span id="ocrRawResult" class="font-mono text-gray-500 truncate flex-1 min-w-0"></span>
             </div>
 
-            <div id="ocrStatus" class="text-xs text-center text-gray-500 my-2">對準識別證上的中文姓名拍照，或直接在下方確認/微調</div>
+            <div id="ocrStatus" class="text-xs text-center text-gray-500 my-2">請將識別證上的「中文姓名」對準紫框中央拍照</div>
 
-            <!-- 辨識出的候選姓名按鈕區 -->
-            <div id="ocrCandidates" class="hidden flex-wrap gap-1.5 mb-2 p-2 bg-purple-50 rounded-lg border border-purple-100 items-center"></div>
+            <!-- 辨識出的候選姓名按鈕區 (拍照後才會出現) -->
+            <div id="ocrCandidates" class="hidden flex-wrap gap-1.5 mb-2.5 p-2 bg-purple-50 rounded-lg border border-purple-100 items-center w-full box-border"></div>
 
-            <!-- 手動微調確認框 (即使卡套反光差1個字也能秒改) -->
-            <div class="flex gap-2 mb-3 bg-purple-50 p-2.5 rounded-xl border border-purple-200 items-center">
-                <span class="text-xs font-bold text-purple-800 whitespace-nowrap">👤 點交人員：</span>
-                <input type="text" id="ocrManualInput" placeholder="可微調或直接輸入姓名..." class="flex-1 border border-purple-300 rounded-lg px-2.5 py-1.5 text-sm font-bold text-gray-900 outline-none focus:ring-2 focus:ring-purple-500 bg-white">
-                <button onclick="confirmManualOcrName()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap shadow-sm">
-                    套用紀錄
+            <!-- 修正手機版不超出視窗：使用 min-w-0 彈性收縮輸入框 + 固定不擠壓的「確認」按鈕 -->
+            <div class="bg-purple-50/80 p-2.5 rounded-xl border border-purple-200 mb-3 w-full box-border">
+                <label class="block text-xs font-bold text-purple-800 mb-1.5">👤 點交人員姓名（可拍照辨識或直接輸入）：</label>
+                <div class="flex items-center gap-2 w-full">
+                    <input type="text" id="ocrManualInput" placeholder="拍照辨識或輸入姓名..." class="flex-1 min-w-0 border border-purple-300 rounded-lg px-3 py-2 text-sm font-bold text-gray-900 outline-none focus:ring-2 focus:ring-purple-500 bg-white">
+                    <button onclick="confirmManualOcrName()" class="flex-shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap shadow-sm transition">
+                        確認
+                    </button>
+                </div>
+            </div>
+
+            <!-- 底部拍照按鈕列 -->
+            <div class="flex gap-2 w-full">
+                <button id="ocrSnapBtn" onclick="captureAndRecognizeName()" class="flex-1 min-w-0 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-3 rounded-xl shadow transition flex items-center justify-center gap-1.5 text-sm whitespace-nowrap">
+                    <i data-lucide="camera" class="w-4 h-4 flex-shrink-0"></i> 擷取框內姓名辨識
                 </button>
-            </div>
-
-            <!-- 快速選擇清單內的保管人 -->
-            <div id="quickKeeperBox" class="mb-3">
-                <p class="text-[11px] font-bold text-gray-500 mb-1">💡 或直接點選清單內的人員作為點交人員：</p>
-                <div id="quickKeeperList" class="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto p-1"></div>
-            </div>
-
-            <div class="flex gap-2">
-                <button id="ocrSnapBtn" onclick="captureAndRecognizeName()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl shadow transition flex items-center justify-center gap-2 text-sm">
-                    <i data-lucide="camera" class="w-4 h-4"></i> 拍照辨識框內姓名
-                </button>
-                <label class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-3 py-2.5 rounded-xl cursor-pointer flex items-center justify-center gap-1 text-xs whitespace-nowrap">
-                    <i data-lucide="image" class="w-4 h-4"></i> 相簿/近拍
+                <label class="flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-3 py-2.5 rounded-xl cursor-pointer flex items-center justify-center gap-1 text-xs whitespace-nowrap">
+                    <i data-lucide="image" class="w-4 h-4 flex-shrink-0"></i> 原生近拍
                     <input type="file" accept="image/*" capture="environment" class="hidden" onchange="ocrFromImageFile(event)">
                 </label>
             </div>
@@ -438,14 +436,14 @@
         const ADMIN_PASSWORD = "1234";
         const AUTH_EXPIRY_MS = 3 * 60 * 60 * 1000;
 
-        // 台灣常見百大姓氏字庫 (用於精準定位識別證上的姓名起點，剔除大頭照衣領雜訊如「和訊」)
+        // 台灣常見百大姓氏字庫 (用於精準定位識別證上的姓名起點，剔除大頭照衣領雜訊)
         const COMMON_SURNAMES = "陳林黃張李王吳劉蔡楊許鄭謝郭洪曾邱廖賴周徐蘇葉莊呂江何蕭羅高簡朱鍾施游詹沈彭胡余盧潘顏梁趙柯翁魏方孫戴范宋鄧杜侯曹薛傅丁溫紀蔣歐藍連唐馬董石卓程姚康馮古姜湯汪白田涂鄒巫尤鐘龔嚴韓袁金童陸夏柳凃邵";
 
         let data = [];
         let signatures = {}; 
         let importVersion = "";
         let currentNfcCard = "";
-        let currentHandoverPerson = localStorage.getItem('lastHandoverPerson') || ""; // 記憶點交人員
+        let currentHandoverPerson = localStorage.getItem('lastHandoverPerson') || "";
         let selectedIds = new Set();
         let uniqueDepts = {};
         let currentRemarkItemId = null;
@@ -663,7 +661,7 @@
             if(id === 'ocrModal') { stopOcrCamera(); }
         }
 
-        // --- 專為北捷識別證調校：相機辨識大名 (單行窄框 + 姓氏鎖定去雜訊 + 記錄至點交人員) ---
+        // --- 專為北捷識別證調校：相機辨識大名 (無預設人名列表、單行窄框、記錄至點交人員) ---
         async function startNameOCR() {
             openModal('ocrModal');
             document.getElementById('ocrCandidates').classList.add('hidden');
@@ -671,8 +669,6 @@
             document.getElementById('ocrPreviewBox').classList.add('hidden');
             document.getElementById('ocrManualInput').value = currentHandoverPerson || '';
             document.getElementById('ocrStatus').textContent = '正在啟動高解析度相機...';
-
-            renderQuickKeeperButtons();
 
             try {
                 ocrVideoStream = await navigator.mediaDevices.getUserMedia({
@@ -682,38 +678,9 @@
                 video.srcObject = ocrVideoStream;
                 document.getElementById('ocrStatus').textContent = '請將識別證上的「3個中文字姓名」對準紫色窄框內（避開照片與反光）';
             } catch (err) {
-                document.getElementById('ocrStatus').textContent = '若無法預覽鏡頭，請點右下角「相簿/近拍」或直接輸入姓名';
+                document.getElementById('ocrStatus').textContent = '若無法預覽鏡頭，請點右下角「原生近拍」或直接輸入姓名';
             }
             lucide.createIcons();
-        }
-
-        function renderQuickKeeperButtons() {
-            const listEl = document.getElementById('quickKeeperList');
-            const selectedMainDept = document.getElementById('deptFilter').value;
-            const selectedSubDept = document.getElementById('subDeptFilter').value;
-
-            const keepers = new Set();
-            if (currentHandoverPerson) keepers.add(currentHandoverPerson);
-            selectedIds.forEach(id => {
-                const it = data.find(d => d.id === id);
-                if (it && it.保管人) keepers.add(it.保管人);
-            });
-            data.forEach(it => {
-                if (orderFilterVal && (it.報廢單號 || '(無單號)') !== orderFilterVal) return;
-                if (selectedSubDept && it.保管單位 !== selectedSubDept) return;
-                if (!selectedSubDept && selectedMainDept && !it.保管單位.startsWith(selectedMainDept)) return;
-                if (it.保管人) keepers.add(it.保管人);
-            });
-
-            const arr = Array.from(keepers).slice(0, 20);
-            if (arr.length === 0) {
-                document.getElementById('quickKeeperBox').classList.add('hidden');
-                return;
-            }
-            document.getElementById('quickKeeperBox').classList.remove('hidden');
-            listEl.innerHTML = arr.map(k =>
-                `<button onclick="applyOcrName('${esc(k)}')" class="bg-white hover:bg-purple-600 hover:text-white text-gray-700 border border-gray-300 px-2.5 py-1 rounded-lg text-xs font-bold transition">${esc(k)}</button>`
-            ).join('');
         }
 
         function stopOcrCamera() {
@@ -738,7 +705,6 @@
             const imgData = octx.getImageData(0, 0, w, h);
             const d = imgData.data;
 
-            // 找出畫面中最暗與平均亮度 (排除高光反光點 > 240)
             let sum = 0, cnt = 0, minG = 255;
             for (let i = 0; i < d.length; i += 4) {
                 const g = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
@@ -746,7 +712,6 @@
                 if (g < 235) { sum += g; cnt++; }
             }
             const avg = cnt > 0 ? (sum / cnt) : 160;
-            // 識別證上的黑字通常比灰底暗 30% 以上
             const cutoff = Math.max(minG + 45, avg * 0.78);
 
             for (let i = 0; i < d.length; i += 4) {
@@ -755,7 +720,6 @@
                 if (mode === 'sharpBinary') {
                     val = g < cutoff ? 0 : 255;
                 } else {
-                    // 柔和高對比：將淺灰底色全部推白，深色字推黑
                     if (g > avg * 0.92) val = 255;
                     else val = Math.max(0, Math.min(255, ((g - minG) / Math.max(1, (avg * 0.92 - minG))) * 220));
                 }
@@ -768,12 +732,12 @@
         async function captureAndRecognizeName() {
             const video = document.getElementById('ocrVideo');
             if (!video.srcObject || !video.videoWidth) {
-                alert("鏡頭尚未就緒，請點選右方「相簿/近拍」或直接輸入姓名！");
+                alert("鏡頭尚未就緒，請點選右方「原生近拍」或直接輸入姓名！");
                 return;
             }
-            // 對應畫面中央單行窄框 (58% 寬 x 20% 高)，避開上方大頭照與下方英文
+            // 對應畫面中央單行窄框 (60% 寬 x 22% 高)
             const vw = video.videoWidth, vh = video.videoHeight;
-            const cw = Math.floor(vw * 0.58), ch = Math.floor(vh * 0.20);
+            const cw = Math.floor(vw * 0.60), ch = Math.floor(vh * 0.22);
             const cx = Math.floor((vw - cw) / 2), cy = Math.floor((vh - ch) / 2);
 
             const rawCanvas = document.createElement('canvas');
@@ -803,15 +767,13 @@
             e.target.value = '';
         }
 
-        // 針對北捷識別證的智慧姓名過濾器：剔除「台北捷運公司」與衣領雜訊，精準鎖定百大姓氏開頭
+        // 針對北捷識別證的智慧姓名過濾器：剔除固定字樣與衣領雜訊，精準鎖定百大姓氏開頭
         function extractPossibleNames(rawText) {
-            // 先移除常見的識別證固定字樣與雜訊字
             let cleanedText = rawText.replace(/台北捷運公司|臺北捷運公司|台北大眾捷運|股份有限公司|資訊處|系統處|數位發展處|人力資源處|車輛處|電機處/g, '');
             const clean = cleanedText.replace(/[^\u4e00-\u9fa5]/g, '');
             const candidates = new Set();
 
             // 1. 優先尋找以「台灣百大姓氏」開頭的 3 字與 2 字姓名
-            // 例如辨識出「和訊蔡威上宮」，會自動略過「和訊」，直接抓出「蔡威上」、「蔡威」！
             for (let i = 0; i < clean.length; i++) {
                 if (COMMON_SURNAMES.includes(clean[i])) {
                     if (i + 3 <= clean.length) candidates.add(clean.slice(i, i + 3));
@@ -876,7 +838,6 @@
                 let text1 = (res1.data && res1.data.text) ? res1.data.text : '';
                 let { clean, list } = extractPossibleNames(text1);
 
-                // 若第一次沒有找到常見姓氏開頭，自動使用銳利二值化圖再跑一次互補
                 if (list.length === 0 || !COMMON_SURNAMES.includes(list[0][0])) {
                     prevImg.src = binUrl;
                     const res2 = await Tesseract.recognize(binUrl, 'chi_tra');
@@ -888,17 +849,16 @@
                     }
                 }
 
-                rawRes.textContent = clean ? `擷取中文字: ${clean}` : '未偵測到清晰文字';
+                rawRes.textContent = clean ? `擷取: ${clean}` : '未偵測到清晰文字';
                 candBox.innerHTML = '';
 
                 if (list.length > 0) {
                     candBox.classList.remove('hidden');
                     candBox.classList.add('flex');
-                    // 自動將姓氏鎖定後的第一順位帶入下方微調輸入框
                     document.getElementById('ocrManualInput').value = list[0];
-                    statusEl.textContent = '已自動過濾雜訊！請點選紫色姓名，或在下方輸入框微調反光字後按「套用紀錄」：';
+                    statusEl.textContent = '請點選紫色姓名按鈕，或在下方輸入框微調後按「確認」：';
                     list.forEach(name => {
-                        candBox.innerHTML += `<button onclick="applyOcrName('${esc(name)}')" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm transition">👤 點交人：${esc(name)}</button>`;
+                        candBox.innerHTML += `<button onclick="applyOcrName('${esc(name)}')" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm transition">👤 ${esc(name)}</button>`;
                     });
                 } else {
                     statusEl.textContent = '卡套反光較強，請稍微傾斜避開白光重拍，或直接在下方輸入姓名！';
@@ -919,7 +879,7 @@
             applyOcrName(val);
         }
 
-        // 套用大名至「點交人員」（不進搜尋框，直接綁定至點交人員欄位）
+        // 套用大名至「點交人員」欄位
         function applyOcrName(name) {
             setHandoverPerson(name);
             let updated = 0;
@@ -1063,7 +1023,6 @@
                 let nfcDisplayHtml = item.nfcCard ? `<div class="text-[10px] text-blue-500 mt-1 font-mono">💳 ${esc(item.nfcCard)}</div>` : '';
                 let remarksHtml = item.remarks.map((rmk, idx) => `<span class="remark-tag" onclick="removeRemark(${item.id}, ${idx}); event.stopPropagation();">${esc(rmk)} <span class="ml-1 text-[10px]">✕</span></span>`).join('');
                 
-                // 第7欄：點交人員 + 簽名圖檔
                 const personName = item.handoverPerson || '';
                 const personBadge = personName
                     ? `<span onclick="editItemHandoverPerson(${item.id}, event)" class="inline-flex items-center gap-1 bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full text-xs font-bold hover:bg-purple-200 cursor-pointer" title="點擊修改點交人員">👤 ${esc(personName)}</span>`
@@ -1152,7 +1111,7 @@
             selectedIds.clear(); closeModal('signModal'); saveData(); buildOrderNoSelect(); document.getElementById('searchInput').value = ''; if (viewOnlySelected) document.getElementById('viewSelectedBtn').click(); renderTable(); updateActionUI(); resetNfcCard();
         }
 
-        // --- 全新 A4 橫版 (Landscape 297x210 mm) PDF 引擎：寬裕排版、100% 絕不切邊 ---
+        // --- A4 橫版 (Landscape 297x210 mm) PDF 引擎 ---
         function toggleAllRecords(checked) {
             document.querySelectorAll('.record-chk').forEach(chk => chk.checked = checked);
         }
@@ -1205,9 +1164,8 @@
                     groups[key].push(r);
                 });
 
-                // A4 橫版高解析度畫布 (1754 寬 x 1240 高, 對應 297 x 210 mm)
                 const PAGE_W = 1754, PAGE_H = 1240, PAD = 70;
-                const CONTENT_W = PAGE_W - PAD * 2; // 1614px 寬裕空間
+                const CONTENT_W = PAGE_W - PAD * 2;
                 const pages = [];
 
                 function createNewPage() {
@@ -1238,7 +1196,6 @@
 
                 drawPageHeader(pctx);
 
-                // A4 橫版 6 欄寬裕配置 (總寬剛好 1614px)
                 const colWidths = [80, 220, 420, 420, 264, 210];
                 const colHeaders = ['序號', '報廢單號', '物品名稱 / 編號', '保管單位 / 保管人 (地點)', '現場備註', '點交人員'];
 
@@ -1253,7 +1210,6 @@
                         drawPageHeader(pctx);
                     }
 
-                    // 批次頂部資訊列
                     pctx.fillStyle = '#f1f5f9';
                     pctx.fillRect(PAD, curY, CONTENT_W, 50);
                     pctx.strokeStyle = '#334155';
@@ -1317,16 +1273,13 @@
                             x += colWidths[c];
                         }
 
-                        // 欄1: 序號
                         pctx.fillStyle = '#111827';
                         pctx.font = '20px "Microsoft JhengHei", sans-serif';
                         pctx.fillText(String(idx + 1), PAD + 26, curY + 38);
 
-                        // 欄2: 報廢單號
                         pctx.font = 'bold 20px monospace';
                         pctx.fillText(it.報廢單號 || '無', PAD + colWidths[0] + 14, curY + 38);
 
-                        // 欄3: 物品名稱 + 編號
                         let ty = curY + 28;
                         const x2 = PAD + colWidths[0] + colWidths[1] + 14;
                         pctx.font = 'bold 20px "Microsoft JhengHei", sans-serif';
@@ -1336,7 +1289,6 @@
                         pctx.fillStyle = '#4b5563';
                         idLines.forEach(l => { pctx.fillText(l, x2, ty); ty += 23; });
 
-                        // 欄4: 保管單位 + 保管人
                         ty = curY + 28;
                         const x3 = x2 + colWidths[2];
                         pctx.font = '20px "Microsoft JhengHei", sans-serif';
@@ -1346,14 +1298,12 @@
                         pctx.fillStyle = '#4b5563';
                         keeperLines.forEach(l => { pctx.fillText(l, x3, ty); ty += 23; });
 
-                        // 欄5: 備註
                         ty = curY + 34;
                         const x4 = x3 + colWidths[3];
                         pctx.font = 'bold 19px "Microsoft JhengHei", sans-serif';
                         pctx.fillStyle = (it.remarks && it.remarks.length) ? '#b91c1c' : '#9ca3af';
                         rmkLines.forEach(l => { pctx.fillText(l, x4, ty); ty += 24; });
 
-                        // 欄6: 點交人員
                         ty = curY + 36;
                         const x5 = x4 + colWidths[4];
                         pctx.font = 'bold 20px "Microsoft JhengHei", sans-serif';
@@ -1363,7 +1313,6 @@
                         curY += rowH;
                     }
 
-                    // 底部簽名區塊
                     const signBoxH = 125;
                     pctx.strokeStyle = '#334155';
                     pctx.lineWidth = 2;
@@ -1384,7 +1333,6 @@
                     curY += signBoxH + 35;
                 }
 
-                // 取得 jsPDF 建構子並建立 A4 橫版 (297mm x 210mm)
                 const jsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
                 const fileName = `報廢點交證明單_橫版_${getFormattedTime().replace(/[-: ]/g, "")}.pdf`;
 
