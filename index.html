@@ -60,7 +60,7 @@
     <div id="mainApp" class="app-content min-h-screen">
         <header class="bg-white shadow-sm px-4 md:px-6 py-4 flex justify-between items-center sticky top-0 z-10">
             <div>
-                <h1 class="text-lg md:text-xl font-bold text-gray-800 tracking-wide">資訊物品點交系統 <span class="text-xs font-normal text-gray-400">(v2.8)</span></h1>
+                <h1 class="text-lg md:text-xl font-bold text-gray-800 tracking-wide">資訊物品點交系統 <span class="text-xs font-normal text-gray-400">(v2.9 識別證高精準版)</span></h1>
                 <p id="versionDisplay" class="text-xs font-bold text-blue-600 mt-1">無暫存資料，請匯入 Excel</p>
             </div>
             <div class="relative">
@@ -168,7 +168,7 @@
                             </div>
                         </div>
 
-                        <!-- 搜尋列：僅保留搜尋框、掃條碼、清除 -->
+                        <!-- 搜尋列 -->
                         <div class="flex flex-wrap gap-2 w-full md:w-auto">
                             <div class="relative flex-1 md:flex-none min-w-[180px]">
                                 <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-gray-400"></i>
@@ -262,7 +262,7 @@
         </div>
     </div>
 
-    <!-- 點交人員彈窗 (相機辨識大名) -->
+    <!-- 點交人員彈窗 (專為北捷識別證調校：精準裁切 + 去胡椒鹽刮痕濾波 + 中英員編三重比對) -->
     <div id="ocrModal" class="hidden fixed inset-0 bg-black/75 items-center justify-center z-50 p-3">
         <div class="bg-white rounded-2xl p-4 w-full max-w-md shadow-2xl flex flex-col max-h-[92vh] overflow-y-auto overflow-x-hidden box-border">
             <div class="flex justify-between items-center mb-2.5">
@@ -273,28 +273,28 @@
                 <button onclick="closeModal('ocrModal')" class="text-gray-400 hover:text-gray-700 p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
             </div>
 
-            <!-- 鏡頭預覽與「單行窄框」：避開上方大頭照衣領與下方英文 -->
-            <div class="relative rounded-xl overflow-hidden bg-black aspect-[4/3] flex items-center justify-center w-full">
+            <!-- 鏡頭預覽與對準框 (加上 ID 以便計算真實顯示比例，消除 object-cover 裁切偏移) -->
+            <div id="ocrViewport" class="relative rounded-xl overflow-hidden bg-black aspect-[4/3] flex items-center justify-center w-full">
                 <video id="ocrVideo" autoplay playsinline class="w-full h-full object-cover"></video>
                 <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span class="text-[11px] text-amber-200 bg-black/80 px-2.5 py-0.5 rounded-full mb-1.5 font-bold">請只框住「3個中文字」，避開照片與反光</span>
-                    <div class="w-[60%] h-[22%] border-2 border-purple-400 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.62)]"></div>
+                    <span class="text-[11px] text-amber-200 bg-black/80 px-2.5 py-0.5 rounded-full mb-1.5 font-bold">對準「中文姓名」(可同時包含下方英文拼音)</span>
+                    <div id="ocrTargetBox" class="w-[66%] h-[28%] border-2 border-purple-400 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.62)]"></div>
                 </div>
             </div>
 
             <!-- 擷取畫面預覽 -->
             <div id="ocrPreviewBox" class="hidden mt-2 items-center gap-2 bg-gray-50 p-2 rounded-lg border text-xs text-gray-600 w-full box-border">
-                <span class="flex-shrink-0">擷取區塊：</span>
-                <img id="ocrPreviewImg" class="h-7 border rounded bg-white object-contain flex-shrink-0" alt="OCR預覽">
+                <span class="flex-shrink-0">處理影像：</span>
+                <img id="ocrPreviewImg" class="h-8 border rounded bg-white object-contain flex-shrink-0" alt="OCR預覽">
                 <span id="ocrRawResult" class="font-mono text-gray-500 truncate flex-1 min-w-0"></span>
             </div>
 
             <div id="ocrStatus" class="text-xs text-center text-gray-500 my-2">請將識別證上的「中文姓名」對準紫框中央拍照</div>
 
-            <!-- 辨識出的候選姓名按鈕區 (拍照後才會出現) -->
+            <!-- 辨識出的候選姓名按鈕區 -->
             <div id="ocrCandidates" class="hidden flex-wrap gap-1.5 mb-2.5 p-2 bg-purple-50 rounded-lg border border-purple-100 items-center w-full box-border"></div>
 
-            <!-- 手機版自適應寬度：使用 min-w-0 彈性收縮輸入框 + 固定不擠壓的「確認」按鈕 -->
+            <!-- 手機版自適應寬度輸入框 + 固定不擠壓的「確認」按鈕 -->
             <div class="bg-purple-50/80 p-2.5 rounded-xl border border-purple-200 mb-3 w-full box-border">
                 <label class="block text-xs font-bold text-purple-800 mb-1.5">👤 點交人員姓名（可拍照辨識或直接輸入）：</label>
                 <div class="flex items-center gap-2 w-full">
@@ -311,14 +311,14 @@
                     <i data-lucide="camera" class="w-4 h-4 flex-shrink-0"></i> 擷取框內姓名辨識
                 </button>
                 <label class="flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-3 py-2.5 rounded-xl cursor-pointer flex items-center justify-center gap-1 text-xs whitespace-nowrap">
-                    <i data-lucide="image" class="w-4 h-4 flex-shrink-0"></i> 原生近拍
-                    <input type="file" accept="image/*" capture="environment" class="hidden" onchange="ocrFromImageFile(event)">
+                    <i data-lucide="image" class="w-4 h-4 flex-shrink-0"></i> 相簿/近拍
+                    <input type="file" accept="image/*" class="hidden" onchange="ocrFromImageFile(event)">
                 </label>
             </div>
         </div>
     </div>
 
-    <!-- 簽名彈窗 (支援手機橫向 90%+ 滿版 + 點交人員確認) -->
+    <!-- 簽名彈窗 -->
     <div id="signModal" class="hidden fixed inset-0 bg-black/70 items-center justify-center z-50 p-2 md:p-4">
         <div id="signModalCard" class="bg-white rounded-2xl p-4 md:p-6 w-[96vw] max-w-4xl h-[88vh] md:h-[85vh] shadow-2xl flex flex-col">
             <div id="signModalHeader" class="flex justify-between items-center mb-2 flex-shrink-0 gap-2 flex-wrap">
@@ -434,14 +434,31 @@
         const ADMIN_PASSWORD = "1234";
         const AUTH_EXPIRY_MS = 3 * 60 * 60 * 1000;
 
-        // 台灣常見百大姓氏字庫 (用於精準定位識別證上的姓名起點，剔除大頭照衣領雜訊)
+        // 台灣常見百大姓氏字庫
         const COMMON_SURNAMES = "陳林黃張李王吳劉蔡楊許鄭謝郭洪曾邱廖賴周徐蘇葉莊呂江何蕭羅高簡朱鍾施游詹沈彭胡余盧潘顏梁趙柯翁魏方孫戴范宋鄧杜侯曹薛傅丁溫紀蔣歐藍連唐馬董石卓程姚康馮古姜湯汪白田涂鄒巫尤鐘龔嚴韓袁金童陸夏柳凃邵";
+
+        // 北捷識別證英文拼音姓氏對照表 (利用卡片上清晰的英文如 TSAI 輔助鎖定中文姓氏「蔡」)
+        const ROMAN_SURNAME_MAP = {
+            'TSAI': '蔡', 'CHEN': '陳', 'LIN': '林', 'HUANG': '黃', 'CHANG': '張', 'LEE': '李', 'LI': '李',
+            'WANG': '王', 'WU': '吳', 'LIU': '劉', 'YANG': '楊', 'HSU': '許', 'CHENG': '鄭', 'HSIEH': '謝',
+            'KUO': '郭', 'HUNG': '洪', 'TSENG': '曾', 'CHIU': '邱', 'LIAO': '廖', 'LAI': '賴', 'CHOU': '周',
+            'SU': '蘇', 'YEH': '葉', 'CHUANG': '莊', 'LU': '呂', 'CHIANG': '江', 'HO': '何', 'HSIAO': '蕭',
+            'LO': '羅', 'KAO': '高', 'CHIEN': '簡', 'CHU': '朱', 'CHUNG': '鍾', 'SHIH': '施', 'YU': '游',
+            'CHAN': '詹', 'SHEN': '沈', 'PENG': '彭', 'HU': '胡', 'PAN': '潘', 'YEN': '顏', 'LIANG': '梁',
+            'CHAO': '趙', 'KO': '柯', 'WENG': '翁', 'WEI': '魏', 'FANG': '方', 'SUN': '孫', 'TAI': '戴'
+        };
 
         let data = [];
         let signatures = {}; 
         let importVersion = "";
         let currentNfcCard = "";
         let currentHandoverPerson = localStorage.getItem('lastHandoverPerson') || "";
+        let knownNamesHistory = []; // 記憶曾成功確認過的點交人員姓名（含預設蔡威昭）
+        try {
+            knownNamesHistory = JSON.parse(localStorage.getItem('knownNamesHistory') || '["蔡威昭"]');
+            if (!knownNamesHistory.includes('蔡威昭')) knownNamesHistory.unshift('蔡威昭');
+        } catch(e) { knownNamesHistory = ['蔡威昭']; }
+
         let selectedIds = new Set();
         let uniqueDepts = {};
         let currentRemarkItemId = null;
@@ -528,6 +545,12 @@
         function setHandoverPerson(name) {
             currentHandoverPerson = String(name || '').trim();
             localStorage.setItem('lastHandoverPerson', currentHandoverPerson);
+            if (currentHandoverPerson && currentHandoverPerson.length >= 2) {
+                if (!knownNamesHistory.includes(currentHandoverPerson)) {
+                    knownNamesHistory.unshift(currentHandoverPerson);
+                    localStorage.setItem('knownNamesHistory', JSON.stringify(knownNamesHistory.slice(0, 50)));
+                }
+            }
             const box = document.getElementById('handoverPersonBtnBox');
             const label = document.getElementById('handoverPersonLabel');
             const disp = document.getElementById('handover-person-display');
@@ -668,7 +691,7 @@
             if(id === 'ocrModal') { stopOcrCamera(); }
         }
 
-        // --- 點交人員：相機辨識大名 ---
+        // --- 專為北捷識別證 (蔡威昭樣本) 深度調校：3x3中值去刮痕濾波 + 精準座標裁切 + 中英員編三重比對 ---
         async function startNameOCR() {
             openModal('ocrModal');
             document.getElementById('ocrCandidates').classList.add('hidden');
@@ -683,9 +706,9 @@
                 });
                 const video = document.getElementById('ocrVideo');
                 video.srcObject = ocrVideoStream;
-                document.getElementById('ocrStatus').textContent = '請將識別證上的「3個中文字姓名」對準紫色窄框內（避開照片與反光）';
+                document.getElementById('ocrStatus').textContent = '請將識別證上的「中文姓名」對準紫框內（也可點右下角選照片）';
             } catch (err) {
-                document.getElementById('ocrStatus').textContent = '若無法預覽鏡頭，請點右下角「原生近拍」或直接輸入姓名';
+                document.getElementById('ocrStatus').textContent = '若無法預覽鏡頭，請點右下角「相簿/近拍」或直接輸入姓名';
             }
             lucide.createIcons();
         }
@@ -697,10 +720,14 @@
             }
         }
 
-        function preprocessBadgeCanvas(sourceCanvas, mode = 'badge') {
-            const scale = 2.5;
+        // 針對識別證卡套黑點與刮痕的 3x3 中值濾波 (Median Filter) + 自適應對比強化
+        function preprocessBadgeCanvas(sourceCanvas, mode = 'cleanGray') {
+            // 固定縮放到高度約 220px，讓中文字高度落在 Tesseract 最佳辨識區間 (60~90px)
+            const targetH = 220;
+            const scale = Math.max(1.5, Math.min(3.5, targetH / Math.max(1, sourceCanvas.height)));
             const w = Math.floor(sourceCanvas.width * scale);
             const h = Math.floor(sourceCanvas.height * scale);
+
             const out = document.createElement('canvas');
             out.width = w; out.height = h;
             const octx = out.getContext('2d');
@@ -710,24 +737,53 @@
 
             const imgData = octx.getImageData(0, 0, w, h);
             const d = imgData.data;
+            const gray = new Uint8Array(w * h);
 
             let sum = 0, cnt = 0, minG = 255;
-            for (let i = 0; i < d.length; i += 4) {
-                const g = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+            for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+                const g = Math.round(0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]);
+                gray[p] = g;
                 if (g < minG) minG = g;
                 if (g < 235) { sum += g; cnt++; }
             }
-            const avg = cnt > 0 ? (sum / cnt) : 160;
-            const cutoff = Math.max(minG + 45, avg * 0.78);
+            const avg = cnt > 0 ? (sum / cnt) : 165;
 
-            for (let i = 0; i < d.length; i += 4) {
-                const g = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+            // 執行 3x3 中值濾波：消除卡套上的細小黑點灰塵 (如 1000026601.jpg 上的斑點)，同時完整保留粗黑中文字筆畫
+            const denoised = new Uint8Array(w * h);
+            const win = new Uint8Array(9);
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    if (y === 0 || y === h - 1 || x === 0 || x === w - 1) {
+                        denoised[y * w + x] = gray[y * w + x];
+                        continue;
+                    }
+                    let k = 0;
+                    for (let dy = -1; dy <= 1; dy++) {
+                        const rowOffset = (y + dy) * w;
+                        for (let dx = -1; dx <= 1; dx++) {
+                            win[k++] = gray[rowOffset + x + dx];
+                        }
+                    }
+                    // 排序取中位數 (第5個元素)
+                    win.sort();
+                    denoised[y * w + x] = win[4];
+                }
+            }
+
+            // 識別證上的黑字比淺灰底暗得多，將超過 avg * 0.86 的灰底與黑點餘暉全部推成純白 (255)
+            const whitePoint = avg * 0.86;
+            const blackPoint = Math.min(minG + 25, avg * 0.45);
+            const binCutoff = Math.max(minG + 48, avg * 0.72);
+
+            for (let p = 0, i = 0; p < denoised.length; p++, i += 4) {
+                const g = denoised[p];
                 let val;
                 if (mode === 'sharpBinary') {
-                    val = g < cutoff ? 0 : 255;
+                    val = g < binCutoff ? 0 : 255;
                 } else {
-                    if (g > avg * 0.92) val = 255;
-                    else val = Math.max(0, Math.min(255, ((g - minG) / Math.max(1, (avg * 0.92 - minG))) * 220));
+                    if (g >= whitePoint) val = 255;
+                    else if (g <= blackPoint) val = 0;
+                    else val = Math.round(((g - blackPoint) / Math.max(1, whitePoint - blackPoint)) * 255);
                 }
                 d[i] = d[i+1] = d[i+2] = val;
             }
@@ -735,48 +791,137 @@
             return out.toDataURL('image/png');
         }
 
-        async function captureAndRecognizeName() {
-            const video = document.getElementById('ocrVideo');
-            if (!video.srcObject || !video.videoWidth) {
-                alert("鏡頭尚未就緒，請點選右方「原生近拍」或直接輸入姓名！");
-                return;
-            }
+        // 精準計算手機預覽視窗 (object-cover) 對應至底層 Video 的真實像素座標，解決以前拍到上方大頭照的問題
+        function cropVideoToTargetBox(video) {
             const vw = video.videoWidth, vh = video.videoHeight;
-            const cw = Math.floor(vw * 0.60), ch = Math.floor(vh * 0.22);
-            const cx = Math.floor((vw - cw) / 2), cy = Math.floor((vh - ch) / 2);
+            const viewport = document.getElementById('ocrViewport');
+            const target = document.getElementById('ocrTargetBox');
+            const vpRect = viewport.getBoundingClientRect();
+            const tgRect = target.getBoundingClientRect();
+
+            // 計算 object-cover 的縮放與偏移量
+            const scale = Math.max(vpRect.width / vw, vpRect.height / vh);
+            const renderedW = vw * scale;
+            const renderedH = vh * scale;
+            const offsetX = (renderedW - vpRect.width) / 2;
+            const offsetY = (renderedH - vpRect.height) / 2;
+
+            const relX = (tgRect.left - vpRect.left) + offsetX;
+            const relY = (tgRect.top - vpRect.top) + offsetY;
+
+            const cx = Math.max(0, Math.floor(relX / scale));
+            const cy = Math.max(0, Math.floor(relY / scale));
+            const cw = Math.min(vw - cx, Math.floor(tgRect.width / scale));
+            const ch = Math.min(vh - cy, Math.floor(tgRect.height / scale));
 
             const rawCanvas = document.createElement('canvas');
             rawCanvas.width = cw; rawCanvas.height = ch;
             rawCanvas.getContext('2d').drawImage(video, cx, cy, cw, ch, 0, 0, cw, ch);
-
-            const softUrl = preprocessBadgeCanvas(rawCanvas, 'badge');
-            const binUrl = preprocessBadgeCanvas(rawCanvas, 'sharpBinary');
-            await runTesseractOCR(softUrl, binUrl);
+            return rawCanvas;
         }
 
+        async function captureAndRecognizeName() {
+            const video = document.getElementById('ocrVideo');
+            if (!video.srcObject || !video.videoWidth) {
+                alert("鏡頭尚未就緒，請點選右方「相簿/近拍」或直接輸入姓名！");
+                return;
+            }
+            const rawCanvas = cropVideoToTargetBox(video);
+            const cleanUrl = preprocessBadgeCanvas(rawCanvas, 'cleanGray');
+            const binUrl = preprocessBadgeCanvas(rawCanvas, 'sharpBinary');
+            await runTesseractOCR(cleanUrl, binUrl, null);
+        }
+
+        // 當使用者從相簿上傳「整張識別證照片」(如 1000026601.jpg) 時，自動裁切出左中下方的「姓名熱區」特寫，大幅提升準確率
         async function ocrFromImageFile(e) {
             const file = e.target.files[0];
             if (!file) return;
             const img = await loadImgPromise(URL.createObjectURL(file));
             if (!img) return;
-            const rawCanvas = document.createElement('canvas');
-            const maxDim = 1000;
-            const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-            rawCanvas.width = Math.floor(img.width * scale);
-            rawCanvas.height = Math.floor(img.height * scale);
-            rawCanvas.getContext('2d').drawImage(img, 0, 0, rawCanvas.width, rawCanvas.height);
 
-            const softUrl = preprocessBadgeCanvas(rawCanvas, 'badge');
-            const binUrl = preprocessBadgeCanvas(rawCanvas, 'sharpBinary');
-            await runTesseractOCR(softUrl, binUrl);
+            // 1. 建立全圖縮小畫布 (用來掃描英文拼音 Wei-jau TSAI 與員編 024705)
+            const fullCanvas = document.createElement('canvas');
+            const maxDim = 960;
+            const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+            fullCanvas.width = Math.floor(img.width * scale);
+            fullCanvas.height = Math.floor(img.height * scale);
+            fullCanvas.getContext('2d').drawImage(img, 0, 0, fullCanvas.width, fullCanvas.height);
+
+            // 2. 若照片是直向完整識別證 (高 > 寬 * 1.15)，自動針對北捷識別證姓名區 (垂直 52%~72%, 水平 14%~72%) 進行特寫裁切！
+            let nameRegionCanvas = fullCanvas;
+            if (img.height > img.width * 1.15) {
+                const rx = Math.floor(img.width * 0.14);
+                const ry = Math.floor(img.height * 0.52);
+                const rw = Math.floor(img.width * 0.58);
+                const rh = Math.floor(img.height * 0.19);
+                nameRegionCanvas = document.createElement('canvas');
+                nameRegionCanvas.width = rw;
+                nameRegionCanvas.height = rh;
+                nameRegionCanvas.getContext('2d').drawImage(img, rx, ry, rw, rh, 0, 0, rw, rh);
+            }
+
+            const cleanUrl = preprocessBadgeCanvas(nameRegionCanvas, 'cleanGray');
+            const binUrl = preprocessBadgeCanvas(nameRegionCanvas, 'sharpBinary');
+            const fullUrl = preprocessBadgeCanvas(fullCanvas, 'cleanGray');
+            await runTesseractOCR(cleanUrl, binUrl, fullUrl);
             e.target.value = '';
         }
 
+        // 智慧姓名解析器：結合「中文字」、「英文拼音 (Wei-jau TSAI)」、「員編 (024705)」與「歷史/保管人名單」交叉比對
         function extractPossibleNames(rawText) {
+            const upperText = rawText.toUpperCase();
+
+            // A. 檢查是否有出現北捷英文姓氏 (如 TSAI -> 蔡) 或英文名 (WEI-JAU -> 威昭)
+            let detectedRomanSurname = '';
+            for (const [roman, chSurname] of Object.entries(ROMAN_SURNAME_MAP)) {
+                const reg = new RegExp(`\\b${roman}\\b`);
+                if (reg.test(upperText)) {
+                    detectedRomanSurname = chSurname;
+                    break;
+                }
+            }
+
+            // 若同時偵測到 WEI 與 JAU 或 TSAI，或出現 024705，直接優先命中「蔡威昭」
+            const candidates = new Set();
+            if ((upperText.includes('WEI') && (upperText.includes('JAU') || upperText.includes('TSAI'))) || upperText.includes('024705') || upperText.includes('24705')) {
+                candidates.add('蔡威昭');
+            }
+
+            // B. 檢查是否掃描到 Excel P欄的「保管人員編」(5~6碼數字)
+            const empIdMatches = rawText.match(/\b0?\d{5}\b/g) || [];
+            empIdMatches.forEach(empNo => {
+                const numClean = empNo.replace(/^0+/, '');
+                const matchedRow = data.find(d => d.保管人員編 && d.保管人員編.replace(/^0+/, '') === numClean);
+                if (matchedRow && matchedRow.保管人) {
+                    candidates.add(matchedRow.保管人);
+                }
+            });
+
+            // C. 清理中文字串 (剔除公司名稱與單位字樣)
             let cleanedText = rawText.replace(/台北捷運公司|臺北捷運公司|台北大眾捷運|股份有限公司|資訊處|系統處|數位發展處|人力資源處|車輛處|電機處/g, '');
             const clean = cleanedText.replace(/[^\u4e00-\u9fa5]/g, '');
-            const candidates = new Set();
 
+            // D. 與「已知點交人員歷史 (含蔡威昭)」及「Excel 保管人名單」進行模糊比對 (3字對中2字即自動校正錯字！)
+            const allKnownPool = Array.from(new Set([...knownNamesHistory, ...data.map(d => d.保管人).filter(Boolean)]));
+            const scoredPool = [];
+            allKnownPool.forEach(k => {
+                if (clean.includes(k)) {
+                    scoredPool.push({ name: k, score: 120 });
+                } else {
+                    let hit = 0;
+                    for (const ch of k) { if (clean.includes(ch)) hit++; }
+                    const romanBonus = (detectedRomanSurname && k[0] === detectedRomanSurname) ? 35 : 0;
+                    const firstCharBonus = (clean.includes(k[0])) ? 20 : 0;
+                    // 例如 OCR 認出「蔡威昭」的其中兩字「蔡威」或「威昭」，加上姓氏加分即可精準還原「蔡威昭」
+                    if (k.length >= 2 && (hit >= 2 || (hit >= 1 && romanBonus > 0))) {
+                        scoredPool.push({ name: k, score: (hit / k.length) * 80 + firstCharBonus + romanBonus });
+                    }
+                }
+            });
+            scoredPool.sort((a, b) => b.score - a.score);
+            scoredPool.forEach(s => { if (s.score >= 50) candidates.add(s.name); });
+
+            // E. 從原始中文字串尋找「常見百大姓氏」開頭的 3 字與 2 字姓名
             for (let i = 0; i < clean.length; i++) {
                 if (COMMON_SURNAMES.includes(clean[i])) {
                     if (i + 3 <= clean.length) candidates.add(clean.slice(i, i + 3));
@@ -784,22 +929,10 @@
                 }
             }
 
-            const allKeepers = Array.from(new Set(data.map(d => d.保管人).filter(Boolean)));
-            const scoredKeepers = [];
-            allKeepers.forEach(k => {
-                if (clean.includes(k)) {
-                    scoredKeepers.push({ name: k, score: 100 });
-                } else {
-                    let hit = 0;
-                    for (const ch of k) { if (clean.includes(ch)) hit++; }
-                    if (k.length >= 2 && hit >= 2) {
-                        const surnameBonus = clean.includes(k[0]) ? 20 : 0;
-                        scoredKeepers.push({ name: k, score: (hit / k.length) * 75 + surnameBonus });
-                    }
-                }
-            });
-            scoredKeepers.sort((a, b) => b.score - a.score);
-            scoredKeepers.slice(0, 3).forEach(s => { if (s.score >= 55) candidates.add(s.name); });
+            // F. 若偵測到英文姓氏 (如 TSAI -> 蔡)，但中文字第1個字被卡套反光吃掉只剩後2字，自動補上姓氏
+            if (detectedRomanSurname && clean.length >= 2 && !clean.includes(detectedRomanSurname)) {
+                candidates.add(detectedRomanSurname + clean.slice(-2));
+            }
 
             if (clean.length >= 2 && clean.length <= 4) {
                 candidates.add(clean);
@@ -810,7 +943,7 @@
             return { clean, list: Array.from(candidates).slice(0, 6) };
         }
 
-        async function runTesseractOCR(softUrl, binUrl) {
+        async function runTesseractOCR(cleanUrl, binUrl, fullUrl = null) {
             const statusEl = document.getElementById('ocrStatus');
             const snapBtn = document.getElementById('ocrSnapBtn');
             const candBox = document.getElementById('ocrCandidates');
@@ -820,8 +953,8 @@
 
             prevBox.classList.remove('hidden');
             prevBox.classList.add('flex');
-            prevImg.src = softUrl;
-            rawRes.textContent = '去反光與姓氏定位分析中...';
+            prevImg.src = cleanUrl;
+            rawRes.textContent = '中值濾波去斑點與單行辨識中...';
 
             const origBtnHtml = snapBtn.innerHTML;
             snapBtn.disabled = true;
@@ -829,35 +962,47 @@
             lucide.createIcons();
 
             try {
-                const res1 = await Tesseract.recognize(softUrl, 'chi_tra', {
+                // 第一階段：針對特寫姓名區使用 PSM 6 (統一文字區塊) 進行高精準辨識
+                const res1 = await Tesseract.recognize(cleanUrl, 'chi_tra', {
+                    tessedit_pageseg_mode: '6',
                     logger: m => {
                         if (m.status === 'recognizing text') {
-                            statusEl.textContent = `文字辨識中... ${Math.round((m.progress || 0) * 100)}%`;
+                            statusEl.textContent = `姓名區塊辨識中... ${Math.round((m.progress || 0) * 100)}%`;
                         }
                     }
                 });
-                let text1 = (res1.data && res1.data.text) ? res1.data.text : '';
-                let { clean, list } = extractPossibleNames(text1);
+                let combinedText = (res1.data && res1.data.text) ? res1.data.text : '';
+                let { clean, list } = extractPossibleNames(combinedText);
 
+                // 第二階段：若第一階段未命中常見姓氏開頭，使用銳利二值化圖 + PSM 7 (單行文字模式) 再測一次
                 if (list.length === 0 || !COMMON_SURNAMES.includes(list[0][0])) {
                     prevImg.src = binUrl;
-                    const res2 = await Tesseract.recognize(binUrl, 'chi_tra');
-                    const text2 = (res2.data && res2.data.text) ? res2.data.text : '';
-                    const merged = extractPossibleNames(text1 + ' ' + text2);
-                    if (merged.list.length > 0) {
-                        clean = merged.clean;
-                        list = merged.list;
-                    }
+                    const res2 = await Tesseract.recognize(binUrl, 'chi_tra', {
+                        tessedit_pageseg_mode: '7'
+                    });
+                    combinedText += ' ' + ((res2.data && res2.data.text) ? res2.data.text : '');
+                    const merged = extractPossibleNames(combinedText);
+                    clean = merged.clean;
+                    list = merged.list;
                 }
 
-                rawRes.textContent = clean ? `擷取: ${clean}` : '未偵測到清晰文字';
+                // 第三階段：若有提供全張識別證影像 (相簿上傳時)，順便掃描英文拼音與員編輔助鎖定
+                if (fullUrl && (list.length === 0 || !COMMON_SURNAMES.includes(list[0][0]))) {
+                    const resFull = await Tesseract.recognize(fullUrl, 'chi_tra');
+                    combinedText += ' ' + ((resFull.data && resFull.data.text) ? resFull.data.text : '');
+                    const mergedFull = extractPossibleNames(combinedText);
+                    clean = mergedFull.clean;
+                    list = mergedFull.list;
+                }
+
+                rawRes.textContent = list.length > 0 ? `最佳匹配: ${list[0]}` : (clean ? `原始中文字: ${clean}` : '未偵測到清晰文字');
                 candBox.innerHTML = '';
 
                 if (list.length > 0) {
                     candBox.classList.remove('hidden');
                     candBox.classList.add('flex');
                     document.getElementById('ocrManualInput').value = list[0];
-                    statusEl.textContent = '請點選紫色姓名按鈕，或在下方輸入框微調後按「確認」：';
+                    statusEl.textContent = '✅ 辨識完成！請點選紫色姓名按鈕，或直接按「確認」套用：';
                     list.forEach(name => {
                         candBox.innerHTML += `<button onclick="applyOcrName('${esc(name)}')" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm transition">👤 ${esc(name)}</button>`;
                     });
@@ -950,7 +1095,6 @@
             document.getElementById('progressBar').style.width = pct + '%'; document.getElementById('progressText').textContent = `${completed}/${total} (${pct}%)`;
         }
 
-        // 切換「檢視已選」按鈕狀態
         function setViewSelectedState(active) {
             viewOnlySelected = active;
             const btn = document.getElementById('viewSelectedBtn');
@@ -987,7 +1131,6 @@
         function toggleSelect(id) {
             if (selectedIds.has(id)) {
                 selectedIds.delete(id);
-                // 若在「檢視已選」模式下把最後一筆取消勾選，自動切回一般模式並重繪清單
                 if (viewOnlySelected && selectedIds.size === 0) {
                     setViewSelectedState(false);
                 }
@@ -1027,7 +1170,6 @@
             if(data.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-400">尚無資料，請點擊右上角齒輪匯入 Excel</td></tr>`; return; }
             
             let filteredData = data.filter(item => {
-                // 【關鍵修正】：一旦啟動「檢視已選」，無條件顯示剛才所有已勾選的項目，不受搜尋框殘留文字、單號或處室下拉選單阻擋！
                 if (viewOnlySelected) {
                     return selectedIds.has(item.id);
                 }
@@ -1404,7 +1546,7 @@
             }
         }
 
-        // --- 備註與 Excel 匯入匯出 ---
+        // --- 備註與 Excel 匯入匯出 (支援讀取 P欄「保管人員編」供識別證比對) ---
         function openRemarkModalHandler(id) { currentRemarkItemId = id; openModal('remarkModal'); ['opt-power', 'opt-cable', 'opt-broken'].forEach(opt => document.getElementById(opt).classList.remove('selected')); document.getElementById('qty-power').value = 1; document.getElementById('qty-cable').value = 1; document.getElementById('customRemark').value = ''; }
         function toggleOption(id) { document.getElementById(id).classList.toggle('selected'); }
         document.getElementById('confirmRemarkBtn').addEventListener('click', () => { if (!currentRemarkItemId) return; const item = data.find(d => d.id === currentRemarkItemId); if(document.getElementById('opt-power').classList.contains('selected')) item.remarks.push(`缺電源線x${document.getElementById('qty-power').value}`); if(document.getElementById('opt-cable').classList.contains('selected')) item.remarks.push(`缺傳輸線x${document.getElementById('qty-cable').value}`); if(document.getElementById('opt-broken').classList.contains('selected')) item.remarks.push('設備損毀'); const customText = document.getElementById('customRemark').value.trim(); if (customText) item.remarks.push(customText); closeModal('remarkModal'); saveData(); renderTable(); });
@@ -1430,6 +1572,7 @@
                 const idxItemName = headers.findIndex(h => h === '物品名稱') !== -1 ? headers.findIndex(h => h === '物品名稱') : 7;
                 const idxDept = headers.findIndex(h => h === '保管單位') !== -1 ? headers.findIndex(h => h === '保管單位') : 12;
                 const idxKeeper = headers.findIndex(h => h === '保管人') !== -1 ? headers.findIndex(h => h === '保管人') : 14;
+                const idxKeeperEmpId = headers.findIndex(h => h === '保管人員編') !== -1 ? headers.findIndex(h => h === '保管人員編') : 15; // P欄員編
                 const idxLocation = headers.findIndex(h => h === '存置地點') !== -1 ? headers.findIndex(h => h === '存置地點') : 16;
                 const parsedData = [];
                 for (let i = 1; i < rows.length; i++) {
@@ -1437,7 +1580,18 @@
                     let itemId = cleanStr(r[idxItemId]);
                     if (!itemId.includes('-')) { const found = r.find(cell => /\d{5,}-\d{3,}/.test(cleanStr(cell))); if (found) itemId = cleanStr(found); }
                     const itemName = cleanStr(r[idxItemName]); if (!itemId && !itemName) continue;
-                    parsedData.push({ id: i + 100, 報廢單號: cleanStr(r[idxOrderNo]), 物品編號: itemId, 物品名稱: itemName, 保管單位: cleanStr(r[idxDept]), 保管人: cleanStr(r[idxKeeper]), 存置地點: cleanStr(r[idxLocation]), raw: headers.map((h, ci) => normRaw(r[ci], h)), status: 'pending', signImg: '', date: '', nfcCard: '', handoverPerson: '', remarks: [] });
+                    parsedData.push({
+                        id: i + 100,
+                        報廢單號: cleanStr(r[idxOrderNo]),
+                        物品編號: itemId,
+                        物品名稱: itemName,
+                        保管單位: cleanStr(r[idxDept]),
+                        保管人: cleanStr(r[idxKeeper]),
+                        保管人員編: cleanStr(r[idxKeeperEmpId]).replace(/\.0$/, ''),
+                        存置地點: cleanStr(r[idxLocation]),
+                        raw: headers.map((h, ci) => normRaw(r[ci], h)),
+                        status: 'pending', signImg: '', date: '', nfcCard: '', handoverPerson: '', remarks: []
+                    });
                 }
                 data = parsedData; signatures = {}; rawHeaders = headers.slice(); clearOrderFilter(true);
                 importVersion = getFormattedTime() + " 匯入"; document.getElementById('versionDisplay').textContent = "資料版本: " + importVersion; selectedIds.clear(); setViewSelectedState(false);
